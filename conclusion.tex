@@ -1,0 +1,259 @@
+The last decade was very fruitful in the field of subregular research.
+New classes of subregular languages and mappings were uncovered for modeling natural language phenomena, and new learning algorithms were developed for these classes.
+The subregular approach has been successfully applied to phonotactics \citep{Heinz10ldp}, rewrite processes in phonology and morphology \citep{Chandlee2014}, and even syntactic constraints over tree structures \citep{Graf18CLS}.
+However, the rapid pace of the theoretical research has not been matched when it comes to engineering considerations.
+Many of the proposed learning algorithms have not been implemented before, and as a result, their performance on concrete data sets was not known.
+
+In this final chapter, I summarize the impact of my dissertation and propose several different ideas and directions that can help to improve the balance between theory and practice in the subregular field.
+
+
+
+\section{Summary of the results}
+
+In my dissertation, I targeted the above problem of the theory-practice misbalance from two perspectives.
+First, I implemented a package \emph{SigmaPie} \href{https://pypi.org/project/SigmaPie/}{\faCube} that includes different subregular learners, scanners, sample generators, and some other functions useful for the subregular research \citep{sigmapie}.
+Second, I explored the performance of several learning algorithms on datasets illustrating such widespread linguistic patterns as word-final devoicing, harmonies of different types, tone plateauing, and others.
+
+\subsection{\emph{SigmaPie} \href{https://pypi.org/project/SigmaPie/}{\faCube}}
+
+This package mostly focuses on tools for working with subregular languages and grammars, but also includes \emph{OSTIA}, a learner for subsequential transducers \citep{OncinaEtAl1993,DeLaHiguera2010}.
+The functionality of the package includes various functions that can be used to simplify the practical work with subregular languages.
+\emph{Learners} extract subregular grammars from the provided dataset.
+\emph{Scanners} evaluate the well-formedness of data items with respect to the given grammar.
+\emph{Sample generators} produces a dataset of the required size that follows the given grammar.
+\emph{Polarity switchers} convert the grammars from positive to negative, and the other way around.
+Finally, \emph{FSM constructors} build a finite state machine based on the given grammar.
+The implemented learning algorithms for strictly piecewise, strictly local, tier-based strictly local, and multi-tier strictly local languages are proposed in \citep{Heinz-2010-SEL,JardineMcMullin2017,McMullinAksenovaDeSanto2019}.
+
+
+The package is implemented in Python 3, and uses the copyleft open-source GNU General Public License v3.0.
+It is available on PyPI and in \texttt{pip}.
+
+
+
+\subsection{Tool-assisted learning experiments}
+
+Apart from the software component, this dissertation also includes the experimental part discussed in chapters 3 and 4.
+Namely, I designed artificial datasets exhibiting different linguistic patterns, and extracted the underlying grammars using tools available in \emph{SigmaPie}.
+The conducted experiments were of two types: the first type targeted learning well-formedness conditions, while the second one explored generalizing the rules of rewrite processes.
+
+The datasets exhibiting the effect of well-formedness rules are lists of words, where those words never violate the encoded well-formedness condition.
+For example, if the condition is vowel harmony, the generated dataset included only the forms where all vowels agreed in the harmony feature.
+Alternatively, in case of the word-final obstruent devoicing, the dataset only included words that did not violate that rule.
+
+The training samples for the processual learners included pairs of strings, representing the underlying representation (UR), and the corresponding surface form (SF) after the rule was applied.
+As a toy example, assume that the inventory of vowels only contains $a$ and $o$, and the progressive vowel harmony enforces the agreement in rounding.
+Valid SFs then include either only $o$ vowels or only $a$ vowels.
+The corresponding URs have all the non-initial vowels hidden (for example, represented as $A$), and only the initial vowel is specified as $a$ or $o$ to trigger the agreement.
+%\footnote{
+In the used encoding scheme, the number of representations of vowels in the URs depends on the number of features that are important for the behavior of the vowels regarding the harmony.
+Namely, the number of vowel representations in URs is $2^f$, where $f$ is the number of such features.
+For example, in the mentioned toy pattern, no features were significant, and therefore there is only $2^0 = 1$ underspecified vowel.
+In some patterns, such as Turkish (see section 4.2.7), height plays a role in the behavior of the undergoers, and therefore there are $2^1 = 2$ underspecified vowels.
+%}
+In such a way, these pairs encode the URs that contain the underspecified elements, and the SFs where those elements are specified.
+
+The results of the learning experiments are summarized in the figure \ref{thesisresults}.
+According to \cite{DeLaHiguera2010}, the task of grammatical inference algorithms is to \emph{constantly} predict the next correct element.
+Therefore, the algorithm did not fully learn the pattern if it is still making errors, no matter how negligibly rare those errors are.
+Figure \ref{thesisresults} only indicates successful learning of the pattern if the achieved accuracy was $100\%$.
+A gradient representation of the experimental outcomes can be found in figures \ref{languagesresults} and \ref{ostiaresults}.
+
+\begin{table}[h!]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\multicolumn{1}{|c|}{\multirow{2}{*}{\textbf{Experiments}}} &
+\multicolumn{4}{|c|}{\textbf{Well-formedness}} &
+\multicolumn{1}{|c|}{\textbf{Transformations}} \\ \cline{2-6} 
+
+& \textbf{SP} & \textbf{SL} & \textbf{TSL} & \textbf{MTSL} & \textbf{OSTIA} \\ \hline
+
+\textit{\textbf{E1:} word-final devoicing} 
+& \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+&  \faThumbsOUp
+& \faThumbsOUp
+& \faThumbsOUp
+\\ \hdashline
+
+\textit{\textcolor{white}{\textbf{E1:}} learning from raw German data} 
+& \cellcolor{gray!50}\faTimes
+&  \faThumbsOUp
+&  \faThumbsOUp
+&\faThumbsOUp
+& \cellcolor{black}
+\\ \hline
+
+\textit{\textbf{E2:} a single vowel harmony without blocking}
+&           \faThumbsOUp     
+& \cellcolor{gray!50}\faTimes
+&  \faThumbsOUp
+&\faThumbsOUp
+& \faThumbsOUp
+\\  \hdashline
+
+\textit{\textcolor{white}{\textbf{E2:}} learning from raw Finnish data} 
+&              \faThumbsOUp    
+&        \cellcolor{gray!50}\faTimes
+&  \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+& \cellcolor{black}
+\\ \hline
+
+\textit{\textbf{E3:} a single vowel harmony with blocking}           
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+&\faThumbsOUp
+& \cellcolor{gray!50}\faTimes
+\\ \hline
+
+\textit{\textbf{E4:} several vowel harmonies without blocking}       
+& \faThumbsOUp
+& \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+& \faThumbsOUp
+&  \faThumbsOUp
+\\ \hline
+
+\textit{\textbf{E5:} several vowel harmonies with blocking}          
+&         \cellcolor{gray!50}\faTimes      
+& \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+&   \faThumbsOUp
+&\cellcolor{gray!50}\faTimes
+\\ \hdashline
+
+
+\textit{\textcolor{white}{\textbf{E5:}} learning from raw Turkish data} 
+&            \cellcolor{gray!50}\faTimes      
+&        \cellcolor{gray!50}\faTimes
+&  \cellcolor{gray!50}\faTimes
+&\cellcolor{gray!50}\faTimes
+& \cellcolor{black}
+\\ \hline
+
+\textit{\textbf{E6:} vowel and consonant harmonies without blocking} 
+& \faThumbsOUp
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+& \faThumbsOUp
+\\ \hline
+
+\textit{\textbf{E7:} vowel and consonant harmonies with blocking}    
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+&\cellcolor{gray!50}\faTimes
+\\ \hline
+
+\textit{\textbf{E8:} unbounded tone plateauing}                      
+& \faThumbsOUp
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{black} 
+& \cellcolor{gray!50}\faTimes
+\\ \hline
+
+\textit{\textbf{E9:} ``simple'' first-last harmony}                            
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \cellcolor{gray!50}\faTimes
+& \faThumbsOUp
+\\ \hline
+
+\textit{\textbf{E10:} ``complex'' first-last harmony}                            
+& \cellcolor{black} 
+& \cellcolor{black} 
+&  \cellcolor{black} 
+& \cellcolor{black} 
+&\cellcolor{gray!50}\faTimes
+\\ \hline
+\end{tabular}}
+\caption{Learning results that were experimentally obtained in this dissertation.
+Black cells indicate that the experiments were not conducted due to the reasons discussed in 5.1.2.}
+\label{thesisresults}
+\end{table}
+
+\paragraph{Learning well-formedness conditions}
+
+To learn well-formedness conditions, I used learning algorithms for strictly piecewise (SP), strictly local (SL), tier-based strictly local (TSL), and multi-tier strictly local (MTSL) languages.
+SP grammars encode long-distance dependencies that prohibit certain substructures, while the distance between the elements of that substructure, as well as the type of intervening material, plays no role \cite{HeinzRogers2010SPdist,Heinz-2010-SEL}.
+Due to this nature, the SP learner was able to correctly generalize all long-distance patterns that do not involve blocking.
+The SP model achieved the accuracy of $100\%$ on all harmonies that do not exhibit a blocking effect, including the pattern of Finnish harmony learned from raw Finnish data, and the unbounded tone plateauing.
+An SL learner models exclusively local processes, and therefore it succeeded on the word-final devoicing data, even when presented with the German wordlist.
+A TSL grammar captures a single long-distance dependency by enforcing the agreement among the selected subset of its alphabet (so-called \emph{tier alphabet}) \citep{HeinzRawal11,JardineMcMullin2017}.
+It captures patterns involving local or non-local dependencies with or without the blocking effect.
+However, if different agreements affect different sets of elements, such as in the case of independent vowel and consonant harmonies, one needs several tiers.
+It is indeed the capacity of MTSL models that showed successful learning of all types of typologically attested patterns presented to the learners \citep{DeSantoGraf19FG,McMullinAksenovaDeSanto2019}.
+None of the learners captured the unattested pattern of first-last harmony that does not belong to any of those language classes.
+In some cases, although the learner would have ``theoretically'' able to learn the pattern, it could not extract the pattern from raw natural language data.
+So, for example, the TSL learner does not perform well on raw Finnish data, although the pattern is TSL in its nature.
+The Turkish vowel harmony is also TSL, but neither TSL nor MTSL learning algorithms could converge on the correct grammar.
+On the artificially generated data, the subregular learners correctly generalized all theoretically expected patterns.
+
+
+
+
+
+\paragraph{Learning rewrite rules}
+
+Due to the subsequential nature of many phonological and morphological processes discussed in section 2.2.2, I focused on the OSTIA inference algorithm for subsequential mappings \citep{OncinaEtAl1993,DeLaHiguera2010}.
+The results show that it learned the local process of word-final devoicing, as well as harmonies that do not exhibit a blocking effect.
+Additionally, it also learned a simple first-case harmony, enforcing the agreement of the initial and final elements of the word.
+However, harmony systems including a blocking effect are also subsequential, but they were not generalized by OSTIA.
+As section 4.2.13 suggests, the reason for this might be rooted in the choice of OSTIA's ``pushback'' condition: several versions of it are proposed in the literature \citep{OncinaEtAl1993,DeLaHiguera2010,DeLaHiguera2011}.
+As expected, OSTIA did not learn the non-subsequential patterns such as unbounded tone plateauing or the more complicated case of first-last harmony.
+Other versions of OSTIA, as well as other transduction learners, would need to be explored in the future.
+
+
+
+Some of the experiments were not conducted due to several reasons.
+The experiment targeting the learning of a ``complex'' first-last harmony was omitted since none of the subregular language learners could model even its simplified version.
+Running OSTIA using raw German, Finnish, or Turkish data would include the step of applying masking to those wordlists.
+It will also greatly increase memory use due to a large alphabet.
+Finally, upon the availability of the $k$-MTSL learning algorithm, one could confirm its inability to capture unbounded tone plateauing.
+Future work would help to fill those missing cells.
+
+
+
+
+
+
+\section{Future directions}
+
+
+There are several future directions that this type of work can take.
+Mainly, they can be classified as the implementation of other proposed algorithms, the design of the novel learning algorithms targeting classes of languages and mappings that do not have learners yet, and conducting learning experiments and analyzing their outcomes.
+
+\paragraph{Implementation of other algorithms}
+In the literature, other learning algorithms are not yet implemented and therefore their practical applications are not explored.
+Among them, there are the learning algorithms ISLFLA and OSLFIA which extract two subclasses of subsequential mappings that are especially useful for local phonological processes \citep{ChandleeEtAl2014,ChandleeEtAl2015}.
+A learner for the class of Output $2$-TSL functions is available in \citep{BurnessMcMullin2019} and needs to be implemented as well.
+\cite{chandlee-etal-2019-learning} also proposes a transduction learner for feature-based representations learning long-distance dependencies.
+
+\paragraph{Design and improvement of algorithms}
+Several subregular language classes capture long-distance linguistic dependencies in other ways as well.
+Among them, there are TSL languages where the tier projection function is sensitive to the local context (ITSL), a full class of MTSL languages, and several other classes such as MITSL, OTSL, IOTSL, and IBSP \citep{Graf17Phonology,DeSantoGraf19FG}.
+The current $2$-MTSL learner does not always induce the minimal number of tiers, and this can be a focus of improvement as well.
+Some other ideas for the design of the learning algorithms are listed in section 4.3 and could be explored as well.
+Additionally, the topic of adding more ``naturalness'' to the learning algorithms needs to be further explored, such as learning the feature systems of the language or finding a way to encode linguistic notions such as natural classes.
+
+
+\paragraph{Algorithm exploration via learning experiments}
+
+Learning experiments show how the learner generalizes the pattern from real data.
+The shape of that data can be manipulated to explore how it affects the learning algorithm.
+For example, patterns exhibiting epenthesis, deletion, metathesis, and different types of dissimilations need to be added to the list of experiments as well.
+Studying the outcomes of learning experiments can help to improve the algorithms, and to better understand their scope.
+
+\bigskip\medskip
+During the last decade, the field of subregular research grew in its popularity, with theoretical advancements showing that it could be used for modeling different phonological, morphological, and even syntactic patterns.
+However, tools to use those theoretical results in practice were not available.
+To address this problem, I implemented the \emph{SigmaPie} \href{https://pypi.org/project/SigmaPie/}{\faCube} package and practically explored the capacities of the available subregular learners.
+This type of work can lead to theoretical and practical improvements in the subregular field, which, in turn, can bring insights into understanding the structure of human language.

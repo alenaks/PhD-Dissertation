@@ -1,0 +1,3563 @@
+\newpage
+\section*{Appendix: code of \emph{SigmaPie}}
+
+\subsection*{Grammar class}
+
+\begin{lstlisting}[language=Python]
+"""A module with the definition of the grammar class. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from itertools import product
+from sigmapie.helper import *
+
+
+class L(object):
+    """A general class for grammars and languages.
+
+    Implements methods that
+    are applicable to all grammars in this package.
+    Attributes:
+        alphabet (list): alphabet used in the language;
+        grammar (list): the list of substructures;
+        k (int): locality window;
+        data (list): input data;
+        edges (list): start- and end-symbols for the grammar;
+        polar ("p" or "n"): polarity of the grammar.
+    """
+
+    def __init__(
+        self, alphabet=None, grammar=None, k=2, data=None, edges=[">", "<"], polar="p"
+    ):
+        """Initializes the L object."""
+        if polar not in ["p", "n"]:
+            raise ValueError(
+                "The value of polarity should be either "
+                "positive ('p') or negative ('n')."
+            )
+        self.__polarity = polar
+        self.alphabet = alphabet
+        self.grammar = [] if grammar is None else grammar
+        self.k = k
+        self.data = [] if data is None else data
+        self.edges = edges
+
+    def extract_alphabet(self):
+        """Extracts alphabet from the given data or grammar and saves it into
+        the 'alphabet' attribute.
+
+        CAUTION: if not all symbols were used in the data or grammar,
+                the result is not correct: update manually.
+        """
+        if self.alphabet is None:
+            self.alphabet = []
+        symbols = set(self.alphabet)
+        if self.data:
+            for item in self.data:
+                symbols.update({j for j in item})
+        if self.grammar:
+            for item in self.grammar:
+                symbols.update({j for j in item})
+        symbols = symbols - set(self.edges)
+        self.alphabet = sorted(list(symbols))
+
+    def well_formed_ngram(self, ngram):
+        """Tells if the given ngram is well-formed. An ngram is ill-formed if:
+
+        * there is something in-between two start- or end-symbols
+          ('>a>'), or
+        * something is before start symbol or after the end symbol
+          ('a>'), or
+        * the ngram consists only of start- or end-symbols.
+        Otherwise it is well-formed.
+        Arguments:
+            ngram (str): The ngram that needs to be evaluated.
+        Returns:
+            bool: well-formedness of the ngram.
+        """
+        start, end = [], []
+        for i in range(len(ngram)):
+            if ngram[i] == self.edges[0]:
+                start.append(i)
+            elif ngram[i] == self.edges[1]:
+                end.append(i)
+
+        start_len, end_len = len(start), len(end)
+        if any([start_len == len(ngram), end_len == len(ngram)]):
+            return False
+
+        if start_len > 0:
+            if ngram[0] != self.edges[0]:
+                return False
+            if start_len > 1:
+                for i in range(1, start_len):
+                    if start[i] - start[i - 1] != 1:
+                        return False
+
+        if end_len > 0:
+            if ngram[-1] != self.edges[1]:
+                return False
+            if end_len > 1:
+                for i in range(1, end_len):
+                    if end[i] - end[i - 1] != 1:
+                        return False
+
+        return True
+
+    def generate_all_ngrams(self, symbols, k):
+        """Generates all possible ngrams of the length k based on the given
+        alphabet.
+
+        Arguments:
+            alphabet (list): alphabet;
+            k (int): locality window (length of ngram).
+        Returns:
+            list: generated ngrams.
+        """
+        symb = symbols[:]
+        if not ((self.edges[0] in symb) or (self.edges[1] in symb)):
+            symb += self.edges
+
+        combinations = product(symb, repeat=k)
+        ngrams = []
+        for ngram in combinations:
+            if self.well_formed_ngram(ngram) and (ngram not in ngrams):
+                ngrams.append(ngram)
+
+        return ngrams
+
+    def opposite_polarity(self, symbols):
+        """Returns the grammar opposite to the one given.
+
+        Arguments:
+            symbols (list): alphabet.
+        Returns:
+            list: ngrams of the opposite polarity.
+        """
+        all_ngrams = self.generate_all_ngrams(symbols, self.k)
+        opposite = [i for i in all_ngrams if i not in self.grammar]
+
+        return opposite
+
+    def check_polarity(self):
+        """Returns the polarity of the grammar ("p" or "n")."""
+        if self.__polarity == "p":
+            return "p"
+        return "n"
+
+    def change_polarity(self, new_polarity=None):
+        """Changes the polarity of the grammar.
+
+        Warning: it does not rewrite the grammar!
+        """
+        if new_polarity is not None:
+            if new_polarity not in ["p", "n"]:
+                raise ValueError(
+                    "The value of polarity should be either "
+                    "positive ('p') or negative ('n')."
+                )
+            self.__polarity = new_polarity
+        else:
+            if self.__polarity == "p":
+                self.__polarity = "n"
+            elif self.__polarity == "n":
+                self.__polarity = "p"
+\end{lstlisting}
+
+\subsection*{Strictly local class}
+
+\begin{lstlisting}[language=Python]
+"""A class of Strictly Local Grammars. Copyright (C) 2019  Alena Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from random import choice
+from sigmapie.helper import *
+from sigmapie.fsm import *
+from sigmapie.grammar import *
+
+
+class SL(L):
+    """A class for strictly local grammars and languages.
+
+    Attributes:
+        alphabet (list): alphabet used in the language;
+        grammar (list): collection of ngrams;
+        k (int): locality window;
+        data (list): input data;
+        edges (list): start- and end-symbols for the grammar;
+        polar ("p" or "n"): polarity of the grammar;
+        fsm (FSM): corresponding finite state machine.
+    """
+
+    def __init__(
+        self, alphabet=None, grammar=None, k=2, data=None, edges=[">", "<"], polar="p"
+    ):
+        """Initializes the SL object."""
+        super().__init__(alphabet, grammar, k, data, edges, polar)
+        self.fsm = FSM(initial=self.edges[0], final=self.edges[1])
+
+    def learn(self):
+        """Extracts SL grammar from the given data."""
+        self.grammar = self.ngramize_data()
+        if self.check_polarity() == "n":
+            self.grammar = self.opposite_polarity(self.alphabet)
+
+    def annotate_string(self, string):
+        """Annotates the string with the start and end symbols.
+
+        Arguments:
+            string (str): a string that needs to be annotated.
+        Returns:
+            str: annotated version of the string.
+        """
+        return ">" * (self.k - 1) + string.strip() + "<" * (self.k - 1)
+
+    def ngramize_data(self):
+        """Creates set of n-grams based on the given data.
+
+        Returns:
+            list: collection of ngrams in the data.
+        """
+        if not self.data:
+            raise ValueError("The data is not provided.")
+
+        ngrams = []
+        for s in self.data:
+            item = self.annotate_string(s)
+            ngrams.extend(self.ngramize_item(item))
+
+        return list(set(ngrams))
+
+    def ngramize_item(self, item):
+        """This function n-gramizes a given string.
+
+        Arguments:
+            item (str): a string that needs to be ngramized.
+        Returns:
+            list: list of ngrams from the item.
+        """
+        ng = []
+        for i in range(len(item) - (self.k - 1)):
+            ng.append(tuple(item[i : (i + self.k)]))
+
+        return list(set(ng))
+
+    def fsmize(self):
+        """Builds FSM corresponding to the given grammar and saves it in the
+        fsm attribute."""
+        if not self.grammar:
+            raise (IndexError("The grammar must not be empty."))
+        if not self.alphabet:
+            raise ValueError(
+                "The alphabet is not provided. " "Use `grammar.extract_alphabet()`."
+            )
+
+        if self.check_polarity() == "p":
+            self.fsm.sl_to_fsm(self.grammar)
+        else:
+            opposite = self.opposite_polarity(self.alphabet)
+            self.fsm.sl_to_fsm(opposite)
+
+    def scan(self, string):
+        """Checks if the given string is well-formed with respect to the given
+        grammar.
+
+        Arguments:
+            string (str): the string that needs to be evaluated.
+        Returns:
+            bool: well-formedness value of a string.
+        """
+        if not self.fsm.transitions:
+            self.fsmize()
+
+        string = self.annotate_string(string)
+        return self.fsm.scan_sl(string)
+
+    def generate_sample(self, n=10, repeat=True, safe=True):
+        """Generates a data sample of the required size, with or without
+        repetitions depending on `repeat` value.
+
+        Arguments:
+            n (int): the number of examples to be generated;
+            repeat (bool): allows (rep=True) or prohibits (rep=False)
+               repetitions within the list of generated items;
+            safe (bool): automatically breaks out of infinite loops,
+                for example, when the grammar cannot generate the
+                required number of data items, and the repetitions
+                are set to False.
+        Returns:
+            list: generated data sample.
+        """
+        if not self.alphabet:
+            raise ValueError("Alphabet cannot be empty.")
+        if not self.fsm.transitions:
+            self.fsmize()
+
+        statemap = self.state_map()
+        if not any([len(statemap[x]) for x in statemap]):
+            raise (
+                ValueError(
+                    "There are ngrams in the grammar that are"
+                    " not leading anywhere. Clean the grammar "
+                    " or run `grammar.clean_grammar()`."
+                )
+            )
+
+        data = [self.generate_item(statemap) for i in range(n)]
+
+        if not repeat:
+            data = set(data)
+            useless_loops = 0
+            prev_len = len(data)
+
+            while len(data) < n:
+                data.add(self.generate_item(statemap))
+
+                if prev_len == len(data):
+                    useless_loops += 1
+                else:
+                    useless_loops = 0
+
+                if safe and useless_loops > 500:
+                    print(
+                        "The grammar cannot produce the requested "
+                        "number of strings. Check the grammar, "
+                        "reduce the number, or allow repetitions."
+                    )
+                    break
+
+        return list(data)
+
+    def generate_item(self, statemap):
+        """Generates a well-formed string with respect to the given grammar.
+
+        Arguments:
+            statemap (dict): a dictionary of possible transitions in the
+                corresponding fsm; constructed inside generate_sample.
+        Returns:
+            str: a well-formed string.
+        """
+        word = self.edges[0] * (self.k - 1)
+        while word[-1] != self.edges[1]:
+            word += choice(statemap[word[-(self.k - 1) :]])
+        return word[(self.k - 1) : -1]
+
+    def state_map(self):
+        """
+        Generates a dictionary of possible transitions in the FSM.
+        Returns:
+            dict: the dictionary of the form
+                {"keys":[list of possible next symbols]}, where 
+                keys are (k-1)-long strings.
+        """
+        local_alphabet = self.alphabet[:] + self.edges[:]
+        poss = product(local_alphabet, repeat=(self.k - 1))
+
+        smap = {}
+        for i in poss:
+            for j in self.fsm.transitions:
+                if j[0] == i:
+                    before = "".join(i)
+                    if before in smap:
+                        smap[before] += j[1]
+                    else:
+                        smap[before] = [j[1]]
+        return smap
+
+    def switch_polarity(self):
+        """Changes polarity of the grammar, and changes the grammar to the
+        opposite one."""
+        if not self.alphabet:
+            raise ValueError("Alphabet cannot be empty.")
+
+        self.grammar = self.opposite_polarity(self.alphabet)
+        self.change_polarity()
+
+    def clean_grammar(self):
+        """Removes useless ngrams from the grammar.
+
+        If negative, it just removes duplicates. If positive, it detects
+        bigrams to which one cannot get     from the initial symbol and
+        from which one cannot get     to the final symbol, and removes
+        them.
+        """
+        if not self.fsm.transitions:
+            self.fsmize()
+
+        if self.check_polarity() == "n":
+            self.grammar = list(set(self.grammar))
+        else:
+            self.fsm.trim_fsm()
+            self.grammar = [j[0] + (j[1],) for j in self.fsm.transitions]
+\end{lstlisting}
+
+
+\subsection*{Strictly piecewise class}
+
+\begin{lstlisting}[language=Python]
+"""A class of Strictly Piecewise Grammars. Copyright (C) 2019  Alena Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from random import choice
+from itertools import product
+
+from sigmapie.grammar import *
+from sigmapie.fsm import *
+from sigmapie.fsm_family import *
+from sigmapie.helper import *
+
+
+class SP(L):
+    """A class for strictly piecewise grammars and languages.
+
+    Attributes:
+        alphabet (list): alphabet used in the language;
+        grammar (list): collection of ngrams;
+        k (int): locality window;
+        data (list): input data;
+        polar ("p" or "n"): polarity of the grammar;
+        fsm (FSM): corresponding finite state machine.
+    """
+
+    def __init__(self, alphabet=None, grammar=None, k=2, data=None, polar="p"):
+        """Initializes the SP object."""
+        super().__init__(alphabet, grammar, k, data, polar=polar)
+        self.fsm = FSMFamily()
+
+    def subsequences(self, string):
+        """Extracts k-long subsequences out of the given word.
+
+        Arguments:
+            string (str): a string that needs to be processed.
+        Returns:
+            list: a list of subsequences out of the string.
+        """
+        if len(string) < self.k:
+            return []
+
+        start = list(string[: self.k])
+        result = [start]
+
+        previous_state = [start]
+        current_state = []
+
+        for s in string[self.k :]:
+            for p in previous_state:
+                for i in range(self.k):
+                    new = p[:i] + p[i + 1 :] + [s]
+                    if new not in current_state:
+                        current_state.append(new)
+            result.extend(current_state)
+            previous_state = current_state[:]
+            current_state = []
+
+        return list(set([tuple(i) for i in result]))
+
+    def learn(self):
+        """Extracts k-long subsequences from the training data.
+
+        Results:
+            self.grammar is updated.
+        """
+        if not self.data:
+            raise ValueError("The data must be provided.")
+        if not self.alphabet:
+            raise ValueError(
+                "The alphabet must be provided. To "
+                "extract the alphabet automatically, "
+                "run `grammar.extract_alphabet()`."
+            )
+
+        self.grammar = []
+        for i in self.data:
+            for j in self.subsequences(i):
+                if j not in self.grammar:
+                    self.grammar.append(j)
+
+        if self.check_polarity() == "n":
+            self.grammar = self.opposite_polarity()
+
+    def opposite_polarity(self):
+        """Returns the grammar opposite to the current one."""
+        all_ngrams = product(self.alphabet, repeat=self.k)
+        return [i for i in all_ngrams if i not in self.grammar]
+
+    def fsmize(self):
+        """Creates FSM family for the given SP grammar by passing every
+        encountered subsequence through the corresponding automaton."""
+        if not self.grammar:
+            self.learn()
+
+        if self.check_polarity() == "p":
+            data_subseq = self.grammar[:]
+        else:
+            data_subseq = self.opposite_polarity()
+
+        # create a family of templates in fsm attribute
+        seq = product(self.alphabet, repeat=self.k - 1)
+        for path in seq:
+            f = FSM(initial=None, final=None)
+            f.sp_build_template(path, self.alphabet, self.k)
+            self.fsm.family.append(f)
+
+        # run the input/grammar through the fsm family
+        for f in self.fsm.family:
+            for r in data_subseq:
+                f.sp_fill_template(r)
+
+        # clean the untouched transitions
+        for f in self.fsm.family:
+            f.sp_clean_template()
+
+    def scan(self, string):
+        """Tells if the input string is well-formed.
+
+        Arguments:
+            string (str): string to be scanned.
+        Returns:
+            bool: True is well-formed, otherwise False.
+        """
+        subseq = self.subsequences(string)
+        found_in_G = [(s in self.grammar) for s in subseq]
+
+        if self.check_polarity == "p":
+            return all(found_in_G)
+        else:
+            return not any(found_in_G)
+
+    def generate_item(self):
+        """Generates a well-formed string.
+
+        Returns:
+            str: the generated string.
+        """
+        if not self.alphabet:
+            raise ValueError("The alphabet must be provided.")
+
+        string = ""
+        while True:
+            options = []
+            for i in self.alphabet:
+                if self.scan(string + i):
+                    options.append(i)
+
+            add = choice(options + ["EOS"])
+            if add == "EOS":
+                return string
+            else:
+                string += add
+
+    def generate_sample(self, n=10, repeat=False, safe=True):
+        """Generates data sample of desired length.
+
+        Arguments:
+            n (int): the number of examples to be generated,
+                the default value is 10;
+            repeat (bool): allow (rep=True) or prohibit (rep=False)
+               repetitions, the default value is False;
+            safe (bool): automatically break out of infinite loops,
+                for example, when the grammar cannot generate the
+                required number of data items, and the repetitions
+                are set to False.
+        Returns:
+            list: a list of generated examples.
+        """
+        sample = [self.generate_item() for i in range(n)]
+
+        if not repeat:
+            useless_loops = 0
+            sample = set(sample)
+            prev_len = len(sample)
+
+            while len(list(set(sample))) < n:
+                sample.add(self.generate_item())
+                if prev_len == len(sample):
+                    useless_loops += 1
+                else:
+                    useless_loops = 0
+
+                if safe and useless_loops > 100:
+                    print(
+                        "The grammar cannot produce the requested number" " of strings."
+                    )
+                    break
+
+        return list(sample)
+
+    def switch_polarity(self, new_polarity=None):
+        """Changes the polarity of the grammar.
+
+        Arguments:
+            new_polarity ("p" or "n"): the new value of the polarity.
+        """
+        old_value = self.check_polarity()
+        self.change_polarity(new_polarity)
+        new_value = self.check_polarity()
+
+        if old_value != new_value:
+            self.grammar = self.opposite_polarity()
+
+    def clean_grammar(self):
+        """Removes useless ngrams from the grammar.
+
+        If negative, it just removes duplicates. If positive, it detects
+        bigrams to which one cannot get     from the initial symbol and
+        from which one cannot get     to the final symbol, and removes
+        them.
+        """
+        self.grammar = list(set(self.grammar))
+\end{lstlisting}
+
+\subsection*{Tier-based strictly local class}
+
+\begin{lstlisting}[language=Python]
+"""A class of Tier-based Strictly Local Grammars. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from random import choice, randint
+from sigmapie.sl_class import *
+
+
+class TSL(SL):
+    """A class for tier-based strictly local grammars and languages.
+
+    Attributes:
+        alphabet (list): alphabet used in the language;
+        grammar (list): the list of substructures;
+        k (int): locality window;
+        data (list): input data;
+        edges (list): start- and end-symbols for the grammar;
+        polar ("p" or "n"): polarity of the grammar;
+        fsm (FSM): finite state machine that corresponds to the grammar;
+        tier (list): list of tier symbols.
+    """
+
+    def __init__(
+        self,
+        alphabet=None,
+        grammar=None,
+        k=2,
+        data=None,
+        edges=[">", "<"],
+        polar="p",
+        tier=None,
+    ):
+        """Initializes the TSL object."""
+        super().__init__(alphabet, grammar, k, data, edges, polar)
+        self.tier = tier
+        self.fsm = FSM(initial=self.edges[0], final=self.edges[1])
+
+    def learn(self):
+        """Learns tier and finds attested (if positive) or unattested (if
+        negative) ngrams of the tier images of the data."""
+        if not self.alphabet:
+            raise ValueError("Alphabet cannot be empty.")
+        if not self.data:
+            raise ValueError("Data needs to be provided.")
+
+        self.learn_tier()
+        tier_sequences = [self.tier_image(i) for i in self.data]
+        self.grammar = TSL(k=self.k, data=tier_sequences).ngramize_data()
+
+        if self.check_polarity() == "n":
+            self.grammar = self.opposite_polarity(self.tier)
+
+    def learn_tier(self):
+        """This function determines which of the symbols used in the language
+        are tier symbols, algorithm by Jardine & McMullin (2017).
+
+        Updates tier attribute.
+        """
+        self.tier = self.alphabet[:]
+        ngrams = self.ngramize_data()
+
+        ngrams_less = TSL(data=self.data, k=(self.k - 1)).ngramize_data()
+        ngrams_more = TSL(data=self.data, k=(self.k + 1)).ngramize_data()
+
+        for symbol in self.alphabet:
+            if self.test_insert(symbol, ngrams, ngrams_less) and self.test_remove(
+                symbol, ngrams, ngrams_more
+            ):
+                self.tier.remove(symbol)
+
+    def test_insert(self, symbol, ngrams, ngrams_less):
+        """Tier presense test #1.
+
+        For every (n-1)-gram ('x','y','z'),
+        there must be n-grams of the type ('x','S','y','z') and
+        ('x','y','S','z').
+        Arguments:
+            symbol (str): the symbol that is currently being tested;
+            ngrams (list): the list of n-gramized input;
+            ngrams_less (list): the list of (n-1)-gramized input.
+        Returns:
+            bool: True if a symbol passed the test, otherwise False.
+        """
+        extension = []
+        for small in ngrams_less:
+            for i in range(len(small) + 1):
+                new = small[:i] + (symbol,) + small[i:]
+                if self.well_formed_ngram(new):
+                    extension.append(new)
+
+        # needs to be here: otherwise no local WF/WE processes
+        edgecase1 = tuple(self.edges[0] * (self.k - 1) + symbol)
+        edgecase2 = tuple(symbol + self.edges[1] * (self.k - 1))
+        extension.extend([edgecase1, edgecase2])
+
+        return set(extension).issubset(set(ngrams))
+
+    def test_remove(self, symbol, ngrams, ngrams_more):
+        """Tier presense test #2.
+
+        For every (n+1)-gram of the type
+        ('x','S','y'), there must be an n-gram of the type ('x', 'y').
+        Arguments:
+            symbol (str): the symbol that is currently being tested;
+            ngrams (list): the list of n-gramized input;
+            ngrams_more (list): the list of (n+1)-gramized input.
+        Returns:
+            bool: True if a symbol passed the test, otherwise False.
+        """
+        extension = []
+        for big in ngrams_more:
+            if symbol in big:
+                for i in range(len(big)):
+                    if big[i] == symbol:
+                        new = big[:i] + big[i + 1 :]
+                        if self.well_formed_ngram(new):
+                            extension.append(new)
+
+        return set(extension).issubset(set(ngrams))
+
+    def tier_image(self, string):
+        """Function that returns a tier image of the input string.
+
+        Arguments:
+            string (str): string that needs to be processed.
+        Returns:
+            str: tier image of the input string.
+        """
+        return "".join(i for i in string if i in self.tier)
+
+    def fsmize(self):
+        """Builds FSM corresponding to the given grammar and saves in it the
+        fsm attribute."""
+        if not self.grammar:
+            raise (IndexError("The grammar must not be empty."))
+        if not self.tier:
+            raise ValueError(
+                "The tier is not extracted or empty. "
+                "Switch to SL or use `grammar.learn()`."
+            )
+
+        if self.check_polarity() == "p":
+            self.fsm.sl_to_fsm(self.grammar)
+        else:
+            opposite = self.opposite_polarity(self.tier)
+            self.fsm.sl_to_fsm(opposite)
+
+    def switch_polarity(self):
+        """Changes polarity of the grammar, and rewrites grammar to the
+        opposite one."""
+        if not self.tier:
+            raise ValueError(
+                "Either the language is SL, or the tier "
+                "is not extracted, use `grammar.learn()`."
+            )
+
+        self.grammar = self.opposite_polarity(self.tier)
+        self.change_polarity()
+
+    def generate_sample(self, n=10, repeat=True, safe=True):
+        """Generates n well-formed strings, with or without repetitions.
+
+        Arguments:
+            n (int): the number of examples to be generated;
+            repeat (bool): allow (rep=True) or prohibit (rep=False)
+               repetitions of the same data items;
+            safe (bool): automatically break out of infinite loops,
+                for example, when the grammar cannot generate the
+                required number of data items, and the repetitions
+                are set to False.
+        Returns:
+            list: generated data sample.
+        """
+        if not self.alphabet:
+            raise ValueError("Alphabet cannot be empty.")
+        if not self.tier:
+            raise ValueError(
+                "Either the language is SL, or the tier "
+                "is not extracted, use `grammar.learn()`."
+            )
+
+        if len(self.alphabet) == len(self.tier):
+            sl = SL(polar=self.check_polarity())
+            sl.alphabet = self.alphabet
+            sl.grammar = self.grammar
+            sl.k = self.k
+            sl.edges = self.edges
+            sl.fsmize()
+            return sl.generate_sample(n, repeat, safe)
+
+        if not self.fsm.transitions:
+            self.fsmize()
+
+        statemap = self.state_map()
+        data = [self.generate_item() for i in range(n)]
+
+        if not repeat:
+            data = set(data)
+            useless_loops = 0
+            prev_len = len(data)
+            while len(data) < n:
+                data.add(self.generate_item())
+                if prev_len == len(data):
+                    useless_loops += 1
+                else:
+                    useless_loops = 0
+
+                if safe and useless_loops > 100:
+                    print(
+                        "The grammar cannot produce the requested number" " of strings."
+                    )
+                    break
+
+        return list(data)
+
+    def generate_item(self):
+        """Generates a well-formed sequence of symbols.
+
+        Returns:
+            str: a well-formed string.
+        """
+        if not self.fsm.transitions:
+            self.fsmize()
+
+        statemap = self.state_map()
+        if not any([len(statemap[x]) for x in statemap]):
+            raise (
+                ValueError(
+                    "There are ngrams in the grammar that are"
+                    " not leading anywhere. Clean the grammar "
+                    " or run `grammar.clean_grammar()`."
+                )
+            )
+
+        tier_seq = self.annotate_string(super().generate_item(statemap))
+        ind = [x for x in range(len(tier_seq)) if tier_seq[x] not in self.edges]
+        if not ind:
+            tier_items = []
+        else:
+            tier_items = list(tier_seq[ind[0] : (ind[-1] + 1)])
+
+        free_symb = list(set(self.alphabet).difference(set(self.tier)))
+
+        new_string = self.edges[0] * (self.k - 1)
+        for i in range(self.k + 1):
+            if randint(0, 1) and free_symb:
+                new_string += choice(free_symb)
+
+        if not tier_items:
+            return "".join([i for i in new_string if i not in self.edges])
+
+        for item in tier_items:
+            new_string += item
+            for i in range(self.k + 1):
+                if randint(0, 1) and free_symb:
+                    new_string += choice(free_symb)
+
+        return "".join([i for i in new_string if i not in self.edges])
+
+    def state_map(self):
+        """
+        Generates a dictionary of possible transitions in the FSM.
+        Returns:
+            dict: the dictionary of the form
+                {"keys":[list of possible next symbols]}, where 
+                keys are (k-1)-long strings.
+        """
+        if self.fsm is None:
+            self.fsmize()
+
+        local_alphabet = self.tier[:] + self.edges[:]
+        poss = product(local_alphabet, repeat=(self.k - 1))
+
+        smap = {}
+        for i in poss:
+            for j in self.fsm.transitions:
+                if j[0] == i:
+                    before = "".join(i)
+                    if before in smap:
+                        smap[before] += j[1]
+                    else:
+                        smap[before] = [j[1]]
+        return smap
+
+    def scan(self, string):
+        """Checks if the given string is well-formed with respect to the given
+        grammar.
+
+        Arguments:
+            string (str): the string that needs to be evaluated.
+        Returns:
+            bool: well-formedness value of a string.
+        """
+        tier_img = self.annotate_string(self.tier_image(string))
+        matches = [(n in self.grammar) for n in self.ngramize_item(tier_img)]
+
+        if self.check_polarity() == "p":
+            return all(matches)
+        else:
+            return not any(matches)
+\end{lstlisting}
+
+\subsection*{Multi-tier strictly local class}
+
+\begin{lstlisting}[language=Python]
+"""A class of Multiple Tier-based Strictly Local Grammars. Copyright (C) 2019
+Alena Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from copy import deepcopy
+from random import choice, randint
+from itertools import product
+from sigmapie.tsl_class import *
+from sigmapie.fsm_family import *
+
+
+class MTSL(TSL):
+    """A class for tier-based strictly local grammars and languages.
+
+    Attributes:
+        alphabet (list): alphabet used in the language;
+        grammar (list): the list of substructures;
+        k (int): locality window;
+        data (list): input data;
+        edges (list): start- and end-symbols for the grammar;
+        polar ("p" or "n"): polarity of the grammar;
+        fsm (FSMFamily): a list of finite state machines that
+            corresponds to the grammar;
+        tier (list): list of tuples, where every tuple lists elements
+            of some tier.
+    Learning for k > 2 is not implemented: requires more theoretical work.
+    """
+
+    def __init__(
+        self, alphabet=None, grammar=None, k=2, data=None, edges=[">", "<"], polar="p"
+    ):
+        """Initializes the TSL object."""
+        super().__init__(alphabet, grammar, k, data, edges, polar)
+        self.fsm = FSMFamily()
+        if self.k != 2:
+            raise NotImplementedError(
+                "The learner for k-MTSL languages is " "still being designed."
+            )
+        self.tier = None
+
+    def learn(self):
+        """
+        Learns 2-local MTSL grammar for a given sample. The algorithm 
+        currently works only for k=2 and is based on MTSL2IA designed 
+        by McMullin, Aksenova and De Santo (2019). We are currently
+        working on lifting the locality of the grammar to arbitrary k.
+        Results:
+            self.grammar is updated with a grammar of the following shape:
+            {(tier_1):[bigrams_for_tier_1],
+                ...
+             (tier_n):[bigrams_for_tier_n]}
+        """
+        if not self.data:
+            raise ValueError("Data needs to be provided.")
+        if not self.alphabet:
+            raise ValueError(
+                "The alphabet is empty. Provide data or "
+                "run `grammar.extract_alphabet`."
+            )
+
+        possible = set(self.generate_all_ngrams(self.alphabet, self.k))
+        attested = set()
+        for d in self.data:
+            bigrams = self.ngramize_item(self.annotate_string(d))
+            attested.update(set(bigrams))
+        unattested = list(possible.difference(attested))
+
+        paths = self.all_paths(self.data)
+        grammar = []
+
+        for bgr in unattested:
+            tier = self.alphabet[:]
+
+            for s in self.alphabet:
+                rmv = True
+
+                # condition 1
+                if s in bgr:
+                    rmv = False
+                    continue
+
+                # condition 2
+                relevant_paths = []
+                for p in paths:
+                    if (p[0] == bgr[0]) and (p[-1] == bgr[-1]) and (s in p[1]):
+                        relevant_paths.append(p)
+                for rp in relevant_paths:
+                    new = [rp[0], set(i for i in rp[1] if i != s), rp[2]]
+                    if new not in paths:
+                        rmv = False
+                        break
+
+                # remove from the tier if passed both conditions
+                if rmv:
+                    tier.remove(s)
+
+            grammar.append((tier, bgr))
+        gathered = self.gather_grammars(grammar)
+
+        self.grammar = gathered
+        self.tier = [i for i in self.grammar]
+
+        if self.check_polarity() == "p":
+            self.grammar = self.opposite_polarity()
+
+    def scan(self, string):
+        """Scan string with respect to a given MTSL grammar.
+
+        Arguments:
+            string (str): a string that needs to be scanned.
+        Returns:
+            bool: well-formedness of the string.
+        """
+        tier_evals = []
+
+        for tier in self.grammar:
+            t = tier
+            g = self.grammar[tier]
+
+            delete_non_tier = "".join([i for i in string if i in t])
+            tier_image = self.annotate_string(delete_non_tier)
+            ngrams = self.ngramize_item((tier_image))
+
+            this_tier = [(ngr in g) for ngr in ngrams]
+
+            if self.check_polarity() == "p":
+                tier_evals.append(all(this_tier))
+            else:
+                tier_evals.append(not any(this_tier))
+
+        return all(tier_evals)
+
+    def gather_grammars(self, grammar):
+        """Gathers grammars with the same tier together.
+
+        Arguments:
+            grammar (list): a representation of the learned grammar
+                where there is a one-to-one mapping between tiers
+                and bigrams.
+        Returns:
+            dict: a dictionary where keys are tiers and values are
+                the restrictions imposed on those tiers.
+        """
+        G = {}
+        for i in grammar:
+            if tuple(i[0]) in G:
+                G[tuple(i[0])] += [i[1]]
+            else:
+                G[tuple(i[0])] = [i[1]]
+        return G
+
+    def path(self, string):
+        """Collects a list of paths from a string.
+
+        A path is a
+        triplet <a, X, b>, where `a` is a symbol, `b` is a symbol
+        that follows `a` in `string`, and `X` is a set of symbols
+        in-between `a` and `b`.
+        Arguments:
+            string (str): a string paths of which need to be found.
+        Returns:
+            list: list of paths of `string`.
+        """
+        string = self.annotate_string(string)
+        paths = []
+
+        for i in range(len(string) - 1):
+            for j in range(i + 1, len(string)):
+                path = [string[i]]
+                path.append(set(k for k in string[(i + 1) : j]))
+                path.append(string[j])
+
+                if path not in paths:
+                    paths.append(path)
+
+        return paths
+
+    def all_paths(self, dataset):
+        """Finds all paths that are present in a list of strings.
+
+        Arguments:
+            dataset (list): a list of strings.
+        Returns:
+            list: a list of paths present in `dataset`.
+        """
+        paths = []
+        for item in dataset:
+            for p in self.path(item):
+                if p not in paths:
+                    paths.append(p)
+
+        return paths
+
+    def opposite_polarity(self):
+        """Generates a grammar of the opposite polarity.
+
+        Returns:
+            dict: a dictionary containing the opposite ngram lists
+                for every tier of the grammar.
+        """
+        if not self.grammar:
+            raise ValueError(
+                "Grammar needs to be provided. It can also "
+                "be learned using `grammar.learn()`."
+            )
+        opposite = {}
+        for i in self.grammar:
+            possib = self.generate_all_ngrams(list(i), self.k)
+            opposite[i] = [j for j in possib if j not in self.grammar[i]]
+
+        return opposite
+
+    def switch_polarity(self):
+        """Changes polarity of the grammar, and rewrites grammar to the
+        opposite one."""
+        self.grammar = self.opposite_polarity()
+        self.change_polarity()
+
+    def map_restrictions_to_fsms(self):
+        """Maps restrictions to FSMs: based on the grammar, it creates a list
+        of lists, where every sub-list has the following shape:
+
+        [tier_n, restrictions_n, fsm_n]. Such sub-list is constructed
+        for every single tier of the current MTSL grammar.
+        Returns:
+            [list, list, FSM]
+                list: a list of current tier's symbols;
+                list: a list of current tier's restrictions;
+                FSM: a FSM corresponding to the current tier.
+        """
+        if not self.grammar:
+            raise (IndexError("The grammar must not be empty."))
+
+        restr_to_fsm = []
+
+        for alpha, ngrams in self.grammar.items():
+            polarity = self.check_polarity()
+            tsl = TSL(
+                self.alphabet,
+                self.grammar,
+                self.k,
+                self.data,
+                self.edges,
+                polar=polarity,
+            )
+            if not tsl.alphabet:
+                tsl.extract_alphabet()
+            tsl.tier = list(alpha)
+            tsl.grammar = list(ngrams)
+            tsl.fsmize()
+            restr_to_fsm.append([tsl.tier[:], tsl.grammar[:], tsl.fsm])
+
+        return restr_to_fsm
+
+    def fsmize(self):
+        """Builds FSM family corresponding to the given grammar and saves in it
+        the fsm attribute."""
+        restr_to_fsm = self.map_restrictions_to_fsms()
+        self.fsm.family = [i[2] for i in restr_to_fsm]
+
+    def generate_sample(self, n=10, repeat=True, safe=True):
+        """Generates a data sample of the required size, with or without
+        repetitions depending on `repeat` value.
+
+        Arguments:
+            n (int): the number of examples to be generated;
+            repeat (bool): allows (rep=True) or prohibits (rep=False)
+               repetitions within the list of generated items;
+            safe (bool): automatically breaks out of infinite loops,
+                for example, when the grammar cannot generate the
+                required number of data items, and the repetitions
+                are set to False.
+        Returns:
+            list: generated data sample.
+        """
+        if not self.alphabet:
+            raise ValueError("Alphabet cannot be empty.")
+        if not self.fsm.family:
+            self.fsmize()
+
+        tier_smap = self.tier_state_maps()
+        if not any([len(tier_smap[x]) for x in tier_smap]):
+            raise (
+                ValueError(
+                    "There are ngrams in the grammar that are"
+                    " not leading anywhere. Clean the grammar "
+                    " or run `grammar.clean_grammar()`."
+                )
+            )
+
+        data = [self.generate_item(tier_smap) for i in range(n)]
+
+        if not repeat:
+            data = set(data)
+            useless_loops = 0
+            prev_len = len(data)
+
+            while len(data) < n:
+                data.add(self.generate_item(tier_smap))
+
+                if prev_len == len(data):
+                    useless_loops += 1
+                else:
+                    useless_loops = 0
+
+                if safe and useless_loops > 500:
+                    print(
+                        "The grammar cannot produce the requested "
+                        "number of strings. Check the grammar, "
+                        "reduce the number, or allow repetitions."
+                    )
+                    break
+
+        return list(data)
+
+    def tier_image(self, string):
+        """
+        Creates tier images of a string with respect to the different
+        tiers listed in the grammar.
+        Returns:
+            dict: a dictionary of the following shape:
+                { (tier_1):"string_image_given_tier_1",
+                    ...,
+                  (tier_n):"string_image_given_tier_n"
+                }
+        """
+        tiers = {}
+        for i in self.grammar:
+            curr_tier = ""
+            for s in string:
+                if s in self.edges or s in i:
+                    curr_tier += s
+            tiers[i] = curr_tier
+        return tiers
+
+    def generate_item(self, tier_smap):
+        """Generates a well-formed string with respect to the given grammar.
+
+        Returns:
+            str: a well-formed string.
+        """
+        word = self.edges[0] * (self.k - 1)
+        main_smap = self.general_state_map(tier_smap)
+        tier_images = self.tier_image(word)
+
+        while word[-1] != self.edges[1]:
+            maybe = choice(main_smap[word[-(self.k - 1) :]])
+            good = True
+            for tier in tier_smap:
+                if maybe in tier:
+                    old_image = tier_images[tier]
+                    if maybe not in tier_smap[tier][old_image[-(self.k - 1) :]]:
+                        good = False
+            if good:
+                word += maybe
+                tier_images = self.tier_image(word)
+
+        newword = word[(self.k - 1) : -1]
+        if self.scan(newword):
+            return newword
+        else:
+            return self.generate_item(tier_smap)
+
+    def tier_state_maps(self):
+        """
+        Generates a dictionary of transitions within the FSMs
+        that correspond to the tier grammars.
+        Returns:
+            dict: the dictionary of the form
+                {
+                 (tier_1):{"keys":[list of next symbols]},
+                 (tier_2):{"keys":[list of next symbols]},
+                   ...
+                 (tier_n):{"keys":[list of next symbols]},
+                }, where keys are (k-1)-long tier representations.
+        Warning: the list of next symbols is tier-specific,
+            so this estimates the rough options: refer to
+            generate_item for the filtering of wrongly
+            generated items.
+        """
+        restr_to_fsm = self.map_restrictions_to_fsms()
+        tier_smaps = {}
+
+        for curr_tier in restr_to_fsm:
+            sl = SL()
+            sl.change_polarity(self.check_polarity())
+            sl.edges = self.edges
+            sl.k = self.k
+            sl.alphabet = curr_tier[0]
+            sl.grammar = curr_tier[1]
+            sl.fsm = curr_tier[2]
+            tier_smaps[tuple(sl.alphabet)] = sl.state_map()
+
+        return tier_smaps
+
+    def general_state_map(self, smaps):
+        """
+        Generates a dictionary of transitions within all
+        FSMs of the FSM family.
+        Returns:
+            dict: the dictionary of the form
+                {"keys":[list of next symbols]}, where 
+                keys are (k-1)-long strings.
+        Warning: the list of next symbols is tier-specific,
+            so this estimates the rough options: refer to
+            generate_item for the filtering of wrongly
+            generated items.
+        """
+        local_smaps = deepcopy(smaps)
+
+        for tier in local_smaps:
+            non_tier = [i for i in self.alphabet if i not in tier]
+            for entry in local_smaps[tier]:
+                local_smaps[tier][entry].extend(non_tier)
+
+        local_smaps = list(local_smaps.values())
+        main_smap = deepcopy(local_smaps[0])
+
+        for other in local_smaps[1:]:
+            for entry in other:
+
+                if entry not in main_smap:
+                    main_smap[entry] = other[entry]
+                else:
+                    inter = [i for i in main_smap[entry] if i in other[entry]]
+                    main_smap[entry] = inter
+
+        free_ones = []
+        for i in self.alphabet:
+            for j in self.grammar:
+                if i in j:
+                    break
+            free_ones.append(i)
+
+        ext_alphabet = deepcopy(self.alphabet) + [self.edges[1]]
+        for x in free_ones:
+            main_smap[x] = ext_alphabet
+
+        return main_smap
+
+    def clean_grammar(self):
+        """Removes useless ngrams from the grammar.
+
+        If negative, it just removes duplicates. If positive, it detects
+        ngrams to which one cannot get     from the initial symbol and
+        from which one cannot get     to the final symbol, and removes
+        them.
+        """
+        for tier in self.grammar:
+            sl = SL()
+            sl.change_polarity(self.check_polarity())
+            sl.edges = self.edges
+            sl.alphabet = list(tier)
+            sl.k = self.k
+            sl.grammar = self.grammar[tier]
+            sl.fsmize()
+            sl.clean_grammar()
+            self.grammar[tier] = deepcopy(sl.grammar)
+\end{lstlisting}
+
+\subsection*{FSM class}
+
+\begin{lstlisting}[language=Python]
+"""A class of Finite State Machines. Copyright (C) 2019  Alena Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+
+class FSM(object):
+    """This class implements Finite State Machine.
+
+    Attributes:
+        initial (str): initial symbol;
+        final (str): final symbol;
+        transitions (list): triples of the form [prev_state,
+            transition, next_state].
+    """
+
+    def __init__(self, initial, final, transitions=None):
+        if transitions == None:
+            self.transitions = []
+        else:
+            self.transitions = transitions
+
+        self.initial = initial
+        self.final = final
+
+    def sl_to_fsm(self, grammar):
+        """Creates FSM transitions based on the SL grammar.
+
+        Arguments:
+            grammar (list): SL ngrams.
+        """
+        if not grammar:
+            raise ValueError("The grammar must not be empty.")
+        self.transitions = [(i[:-1], i[-1], i[1:]) for i in grammar]
+
+    def scan_sl(self, string):
+        """Scans a given string using the learned SL grammar.
+
+        Arguments:
+            string (str): a string that needs to be scanned.
+        Returns:
+            bool: well-formedness value of the string.
+        """
+        if string[0] != self.initial or string[-1] != self.final:
+            raise ValueError("The string is not annotated with " "the delimeters.")
+        if not self.transitions:
+            raise ValueError(
+                "The transitions are empty. Extract the"
+                " transitions using grammar.fsmize()."
+            )
+
+        k = len(self.transitions[0][0]) + 1
+        for i in range(k - 1, len(string)):
+            move_to_next = []
+            for j in self.transitions:
+                can_read = string[(i - k + 1) : (i + 1)] == "".join(j[0]) + j[1]
+                move_to_next.append(can_read)
+
+            if not any(move_to_next):
+                return False
+
+        return True
+
+    def trim_fsm(self):
+        """This function trims useless transitions.
+
+        1. Finds the initial state and collects the set of states to which one
+           can come from that node and the nodes connected to it.
+        2. Changes direction of the transitions and runs algorithm again to
+           detect states from which one cannot get to the final state.
+        As the result, self.transitions only contains useful transitions.
+        """
+        if not self.transitions:
+            raise ValueError("Transtitions of the automaton must" " not be emtpy.")
+        can_start = self.accessible_states(self.initial)
+        self.transitions = [(i[2], i[1], i[0]) for i in can_start]
+        mirrored = self.accessible_states(self.final)
+        self.transitions = [(i[2], i[1], i[0]) for i in mirrored]
+
+    def accessible_states(self, marker):
+        """Finds accessible states.
+
+        Arguments:
+            marker (str): initial or final state.
+        Returns:
+            list: list of transitions that can be made from
+                the given initial or final state.
+        """
+        updated = self.transitions[:]
+
+        # find initial/final transitions
+        reachable = []
+        for i in self.transitions:
+            if i[0][0] == i[0][-1] == marker:
+                reachable.append(i)
+                updated.remove(i)
+
+        # to keep copies that can be modified while looping
+        mod_updated = updated[:]
+        mod_reachable = []
+        first_time = True
+
+        # find transitions that can be reached
+        while mod_reachable != [] or first_time:
+            mod_reachable = []
+            first_time = False
+            for p in updated:
+                for s in reachable:
+                    if p[0] == s[2]:
+                        mod_reachable.append(p)
+                        mod_updated.remove(p)
+            updated = mod_updated[:]
+            reachable.extend(mod_reachable)
+
+        return reachable
+
+    def sp_build_template(self, path, alphabet, k):
+        """Generates a template for the given k-SP path.
+
+        Arguments:
+            path (str): the sequence for which the template is generated;
+            alphabet (list): list of all symbols of the grammar;
+            k (int): window size of the grammar.
+        """
+
+        # creating the "sceleton" of the FSM
+        for i in range(k - 1):
+            # boolean shows whether the transition was accessed
+            self.transitions.append([i, path[i], i + 1, False])
+
+        # adding non-final loops
+        newtrans = []
+        for t in self.transitions:
+            for s in alphabet:
+                if s != t[1]:
+                    newtrans.append([t[0], s, t[0], False])
+
+        # adding final loops
+        for s in alphabet:
+            newtrans.append(
+                [self.transitions[-1][2], s, self.transitions[-1][2], False]
+            )
+
+        self.transitions += newtrans
+
+    def sp_fill_template(self, sequence):
+        """Runs the imput sequence through the SP automaton and marks
+        transitions if they were taken.
+
+        Cleans
+        transitions that were not taken afterwards.
+        Arguments:
+            sequence (str): sequence of symbols that needs to be
+                passed through the automaton.
+        """
+        state = 0
+        for s in sequence:
+            for t in self.transitions:
+                if (t[0] == state) and (t[1] == s):
+                    state = t[2]
+                    t[3] = True
+                    break
+
+    def sp_clean_template(self):
+        """Removes transitions that were not accessed."""
+        self.transitions = [i[:3] for i in self.transitions if i[3] == True]
+
+    def scan_sp(self, string):
+        """Runs the given sequence through the automaton.
+
+        Arguments:
+            string (str): string to run through the automaton.
+        Returns:
+            bool: True if input can be accepted by the automaton,
+                otherwise False.
+        """
+        state = 0
+        for s in string:
+            change = False
+            for t in self.transitions:
+                if (t[0] == state) and (t[1] == s):
+                    state = t[2]
+                    change = True
+                    break
+
+            if not change:
+                return False
+
+        return True
+\end{lstlisting}
+
+\subsection*{FSM family class}
+
+\begin{lstlisting}[language=Python]
+"""A class of Families of Finite State Machines. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from sigmapie.fsm import *
+
+
+class FSMFamily(object):
+    """
+    This class encodes Family of Finite State Machines. Used for 
+    a simple encoding of FSMs corresponding to SP languages.
+    Attributes:
+      transitions(list): triples of the form 
+        [prev_state, transition, next_state].
+    """
+
+    def __init__(self, family=None):
+        """Initializes the FSMFamily object."""
+        if family is None:
+            self.family = []
+        else:
+            self.family = family
+
+    def run_all_fsm(self, string):
+        """Tells whether the given string is accepted by all the automata of
+        the family.
+
+        Arguments:
+            string (str): the input string.
+        Returns:
+            bool: True if the string is accepted by all the
+                fsms, otherwise False.
+        """
+        return all([f.scan_sp(string) for f in self.family])
+\end{lstlisting}
+
+\subsection*{FST class}
+
+\begin{lstlisting}[language=Python]
+"""A class defining the Finite State Transducer. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from copy import deepcopy
+
+
+class FST:
+    """A class representing finite state transducers.
+
+    Attributes:
+        Q (list): a list of states;
+        Sigma (list): a list of symbols of the input alphabet;
+        Gamma (list): a list of symbols of the output alphabet;
+        qe (str): name of the unique initial state;
+        E (list): a list of transitions;
+        stout (dict): a collection of state outputs.
+    """
+
+    def __init__(self, Sigma=None, Gamma=None):
+        """Initializes the FST object."""
+        self.Q = None
+        self.Sigma = Sigma
+        self.Gamma = Gamma
+        self.qe = ""
+        self.E = None
+        self.stout = None
+
+    def rewrite(self, w):
+        """Rewrites the given string with respect to the rules represented in
+        the current FST.
+
+        Arguments:
+            w (str): a string that needs to be rewritten.
+        Outputs:
+            str: the translation of the input string.
+        """
+        if self.Q == None:
+            raise ValueError("The transducer needs to be constructed.")
+
+        # move through the transducer and write the output
+        result = ""
+        current_state = ""
+        moved = False
+        for i in range(len(w)):
+            for tr in self.E:
+                if tr[0] == current_state and tr[1] == w[i]:
+                    result += tr[2]
+                    current_state, moved = tr[3], True
+                    break
+            if moved == False:
+                raise ValueError(
+                    "This string cannot be read by the current transducer."
+                )
+
+        # add the final state output
+        if self.stout[current_state] != "*":
+            result += self.stout[current_state]
+
+        return result
+
+    def copy_fst(self):
+        """Produces a deep copy of the current FST.
+
+        Returns:
+            T (FST): a copy of the current FST.
+        """
+        T = FST()
+        T.Q = deepcopy(self.Q)
+        T.Sigma = deepcopy(self.Sigma)
+        T.Gamma = deepcopy(self.Gamma)
+        T.E = deepcopy(self.E)
+        T.stout = deepcopy(self.stout)
+
+        return T
+\end{lstlisting}
+
+\subsection*{OSTIA}
+
+\begin{lstlisting}[language=Python]
+"""An implementation of the learning algorithm OSTIA. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+from sigmapie.fst_object import *
+from sigmapie.helper import *
+
+
+def ostia(S, Sigma, Gamma):
+    """This function implements OSTIA (Onward Subsequential Transduction
+    Inference Algorithm).
+
+    Arguments:
+        S (list): a list of pairs (o, t), where `o` is the original
+            string, and `t` is its translation;
+        Sigma (list): the input alphabet;
+        Gamma (list): the output alphabet.
+    Returns:
+        FST: a transducer defining the mapping.
+    """
+    # create a template of the onward PTT
+    T = build_ptt(S, Sigma, Gamma)
+    T = onward_ptt(T, "", "")[0]
+
+    # color the nodes
+    red = [""]
+    blue = [tr[3] for tr in T.E if tr[0] == "" and len(tr[1]) == 1]
+
+    # choose a blue state
+    while len(blue) != 0:
+        blue_state = blue[0]
+
+        # if exists state that we can merge with, do it
+        exists = False
+        for red_state in red:
+
+            # if you already merged that blue state with something, stop
+            if exists == True:
+                break
+
+            # try to merge these two states
+            if ostia_merge(T, red_state, blue_state):
+                T = ostia_merge(T, red_state, blue_state)
+                exists = True
+
+        # if it is not possible, color that blue state red
+        if not exists:
+            red.append(blue_state)
+
+        # if possible, remove the folded state from the list of states
+        else:
+            T.Q.remove(blue_state)
+            del T.stout[blue_state]
+
+        # add in blue list other states accessible from the red ones that are not red
+        blue = []
+        for tr in T.E:
+            if tr[0] in red and tr[3] not in red:
+                blue.append(tr[3])
+
+    # clean the transducer from non-reachable states
+    T = ostia_clean(T)
+    T.E = [tuple(i) for i in T.E]
+
+    return T
+
+
+def build_ptt(S, Sigma, Gamma):
+    """Builds a prefix tree transducer based on the data sample.
+
+    Arguments:
+        S (list): a list of pairs (o, t), where `o` is the original
+            string, and `t` is its translation;
+        Sigma (list): the input alphabet;
+        Gamma (list): the output alphabet.
+    """
+
+    # build a template for the transducer
+    T = FST(Sigma, Gamma)
+
+    # fill in the states of the transducer
+    T.Q = []
+    for i in S:
+        for j in prefix(i[0]):
+            if j not in T.Q:
+                T.Q.append(j)
+
+    # fill in the empty transitions
+    T.E = []
+    for i in T.Q:
+        if len(i) >= 1:
+            T.E.append([i[:-1], i[-1], "", i])
+
+    # fill in state outputs
+    T.stout = {}
+    for i in T.Q:
+        for j in S:
+            if i == j[0]:
+                T.stout[i] = j[1]
+        if i not in T.stout:
+            T.stout[i] = "*"
+
+    return T
+
+
+def onward_ptt(T, q, u):
+    """Function recursively pushing the common parts of strings towards the
+    initial state therefore making the machine onward.
+
+    Arguments:
+        T (FST): a transducer that is being modified;
+        q (str): a state that is being processes;
+        u (str): a current part of the string to be moved.
+    Returns:
+        (FST, str, str)
+            FST: the updated transducer;
+            str: a new state;
+            u: a new string to be moved.
+    """
+    # proceed as deep as possible
+    for tr in T.E:
+        if tr[0] == q:
+            T, qx, w = onward_ptt(T, tr[3], tr[1])
+            if tr[2] != "*":
+                tr[2] += w
+
+    # find lcp of all ways of leaving state 1 or stopping in it
+    t = [tr[2] for tr in T.E if tr[0] == q]
+    f = lcp(T.stout[q], *t)
+
+    # remove from the prefix unless it's the initial state
+    if f != "" and q != "":
+        for tr in T.E:
+            if tr[0] == q:
+                tr[2] = remove_from_prefix(tr[2], f)
+        T.stout[q] = remove_from_prefix(T.stout[q], f)
+
+    return T, q, f
+
+
+def ostia_outputs(w1, w2):
+    """Function implementing a special comparison operation:
+
+    it returns a string if two strings are the same and if
+    another string is unknown, and False otherwise.
+    Arguments:
+        w1 (str): the first string;
+        w2 (str): the second string.
+    Returns:
+        bool | if strings are not the same;
+        str | otherwise.
+    """
+    if w1 == "*":
+        return w2
+    elif w2 == "*":
+        return w1
+    elif w1 == w2:
+        return w2
+    else:
+        return False
+
+
+def ostia_pushback(T_orig, q1, q2, a):
+    """Re-distributes lcp of two states further in the FST.
+
+    Arguments:
+        T_orig (FST): a transducer;
+        q1 (str): the first state;
+        q2 (str): the second state;
+        a (str): the lcp of q1 and q2.
+    Returns:
+        FST: an updated transducer.
+    """
+    # to avoid rewriting the original transducer
+    T = T_orig.copy_fst()
+
+    # states where you get if follow a
+    q1_goes_to = None
+    q2_goes_to = None
+
+    # what is being written from this state
+    from_q1, from_2 = None, None
+    for tr in T.E:
+        if tr[0] == q1 and tr[1] == a:
+            from_q1 = tr[2]
+            q1_goes_to = tr[3]
+        if tr[0] == q2 and tr[1] == a:
+            from_q2 = tr[2]
+            q2_goes_to = tr[3]
+    if from_q1 == None or from_q2 == None:
+        raise ValueError("One of the states cannot be found.")
+
+    # find the part after longest common prefix
+    u = lcp(from_q1, from_q2)
+    remains_q1 = from_q1[len(u) :]
+    remains_q2 = from_q2[len(u) :]
+
+    # assign lcp as current output
+    for tr in T.E:
+        if tr[0] in [q1, q2] and tr[1] == a:
+            tr[2] = u
+
+    # find what the next state writes given any other choice
+    # and append the common part in it
+    for tr in T.E:
+        if tr[0] == q1_goes_to:
+            tr[2] = remains_q1 + tr[2]
+        if tr[0] == q2_goes_to:
+            tr[2] = remains_q2 + tr[2]
+
+    # append common part to the next state's state output
+    if T.stout[q1_goes_to] != "*":
+        T.stout[q1_goes_to] = remains_q1 + T.stout[q1_goes_to]
+    if T.stout[q2_goes_to] != "*":
+        T.stout[q2_goes_to] = remains_q2 + T.stout[q2_goes_to]
+
+    return T
+
+
+def ostia_merge(T_orig, q1, q2):
+    """Re-directs all branches of q2 into q1.
+
+    Arguments:
+        T_orig (FST): a transducer;
+        q1 (str): the first state;
+        q2 (str): the second state.
+    Returns:
+        FST: an updated transducer.
+    """
+    # to avoid rewriting the original transducer
+    T = T_orig.copy_fst()
+
+    # save which transition was changed to revert in case cannot merge the states
+    changed = None
+    for tr in T.E:
+        if tr[3] == q2:
+            changed = tr[:]
+            tr[3] = q1
+
+    # save the state output of the q1 originally
+    changed_stout = T.stout[q1]
+
+    # check if we can merge the states
+    can_do = ostia_fold(T, q1, q2)
+
+    # if cannot, revert the change
+    if can_do == False:
+        for tr in T.E:
+            if tr[0] == changed[0] and tr[1] == changed[1] and tr[2] == changed[2]:
+                tr[3] = changed[3]
+        T.stout[q1] = changed_stout
+        return False
+
+    # if can, do it
+    else:
+        return can_do
+
+
+def ostia_fold(T_orig, q1, q2):
+    """Recursively folds subtrees of q2 into q1.
+
+    Arguments:
+        T_orig (FST): a transducer;
+        q1 (str): the first state;
+        q2 (str): the second state.
+    Returns:
+        FST: an updated transducer.
+    """
+    # to avoid rewriting the original transducer
+    T = T_orig.copy_fst()
+
+    # compare the state outputs
+    w = ostia_outputs(T.stout[q1], T.stout[q2])
+    if w == False:
+        return False
+
+    # rewrite * in case it's the output of q1
+    T.stout[q1] = w
+
+    # look at every possible subtree of q_2
+    for a in T.Sigma:
+        add_new = False
+
+        for tr_2 in T.E:
+            if tr_2[0] == q2 and tr_2[1] == a:
+
+                # if the edge exists from q1
+                edge_defined = False
+                for tr_1 in T.E:
+                    if tr_1[0] == q1 and tr_1[1] == a:
+                        edge_defined = True
+
+                        # fail if inconsistent with output of q2
+                        if tr_1[2] not in prefix(tr_2[2]):
+                            return False
+
+                        # move the mismatched suffix of q1 and q2 further
+                        T = ostia_pushback(T, q1, q2, a)
+                        T = ostia_fold(T, tr_1[3], tr_2[3])
+                        if T == False:
+                            return False
+
+                # if the edge doesn't exist from q1 yet, add it
+                if not edge_defined:
+                    add_new = [q1, a, tr_2[2], tr_2[3]]
+
+        # if the new transition was constructed, add it to the list of transitions
+        if add_new:
+            T.E.append(add_new)
+
+    return T
+
+
+def ostia_clean(T_orig):
+    """Removes the disconnected branches from the transducer that appear due to
+    the step folding the sub-trees.
+
+    Arguments:
+        T_orig (FST): a transducer.
+    Returns:
+        FST: an updated transducer.
+    """
+    # to avoid rewriting the original transducer
+    T = T_orig.copy_fst()
+
+    # determine which states are reachable, i.e. accessible from the initial state
+    reachable_states = [""]
+    add = []
+    change_made = True
+    while change_made == True:
+        change_made = False
+        for st in reachable_states:
+            for tr in T.E:
+                if tr[0] == st and tr[3] not in reachable_states and tr[3] not in add:
+                    add.append(tr[3])
+                    change_made = True
+
+        # break out of the loop if after checking the list once again, no states were added
+        if change_made == False:
+            break
+        else:
+            reachable_states.extend(add)
+            add = []
+
+    # clean the list of transitions
+    new_E = []
+    for tr in T.E:
+        if tr[0] in reachable_states and tr[3] in reachable_states:
+            new_E.append(tr)
+    T.E = new_E
+
+    # clean the dictionary of state outputs
+    new_stout = {}
+    for i in T.stout:
+        if i in reachable_states:
+            new_stout[i] = T.stout[i]
+    T.stout = new_stout
+
+    # clean the list of states
+    new_Q = [i for i in T.Q if i in reachable_states]
+    T.Q = new_Q
+
+    return T
+\end{lstlisting}
+
+\subsection*{Additional functions}
+
+\begin{lstlisting}[language=Python]
+"""Module with general helper functions for the subregular package. Copyright
+(C) 2019  Alena Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+
+def alphabetize(data):
+    """Detects symbols used in the input data.
+
+    Arguments:
+        data (list): Input data.
+    Returns:
+        list:  Symbols used in these examples.
+    """
+    alphabet = set()
+    for item in data:
+        alphabet.update({i for i in item})
+    return sorted(list(alphabet))
+
+
+def get_gram_info(ngrams):
+    """Returns the alphabet and window size of the grammar.
+
+    Arguments:
+        ngrams (list): list of ngrams.
+    Returns:
+        (list, int)
+            list: alphabet;
+            int: locality window.
+    """
+    alphabet = list(set([i for i in "".join(ngrams) if i not in [">", "<"]]))
+    k = max(len(i) for i in ngrams)
+    return alphabet, k
+
+
+def prefix(w):
+    """Returns a list of prefixes of a given string.
+
+    Arguments:
+        w (str): a string prefixes of which need to be extracted.
+    Returns:
+        list: a list of prefixes of the given string.
+    """
+    return [w[:i] for i in range(len(w) + 1)]
+
+
+def lcp(*string):
+    """
+    Finds the longest common prefix of an unbounded number of strings.
+    Arguments:
+        *string (str): one or more strings;
+    Returns:
+        str: a longest common prefix of the input strings.
+    """
+    w = list(set(i for i in string if i != "*"))
+    if not w:
+        raise IndexError("At least one non-unknown string needs to be provided.")
+
+    result = ""
+    n = min([len(x) for x in w])
+    for i in range(n):
+        if len(set(x[i] for x in w)) == 1:
+            result += w[0][i]
+        else:
+            break
+
+    return result
+
+
+def remove_from_prefix(w, pref):
+    """Removes a substring from the prefix position of another string.
+
+    Arguments:
+        w (str): a string that needs to be modified;
+        pref (str): a prefix that needs to be removed from the string.
+    Returns:
+        str: the modified string.
+    """
+    if w.startswith(pref):
+        return w[len(pref) :]
+    elif w == "*":
+        return w
+
+    raise ValueError(pref + " is not a prefix of " + w)
+\end{lstlisting}
+
+
+\subsection*{Package initialization}
+
+\begin{lstlisting}[language=Python]
+"""
+   SigmaPie: a toolkit for subregular grammars and languages.
+   Copyright (C) 2019  Alena Aksenova
+
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+"""
+
+from sigmapie.sl_class import *
+from sigmapie.tsl_class  import *
+from sigmapie.mtsl_class import *
+from sigmapie.sp_class import *
+from sigmapie.ostia import *
+
+print(
+    "\nYou successfully loaded SigmaPie. \n\n"
+    "Formal language classes and grammars available:\n"
+    "\t* strictly piecewise: SP(alphabet, grammar, k, data, polar);\n"
+    "\t* strictly local: SL(alphabet, grammar, k, data, edges, polar);\n"
+    "\t* tier-based strictly local: TSL(alphabet, grammar, k, data, edges,"
+    " polar, tier);\n"
+    "\t* multiple tier-based strictly local: MTSL(alphabet, grammar, k, "
+    "data, edges, polar).\n\n"
+    "Alternatively, you can initialize a transducer: "
+    "FST(states, sigma, gamma, initial, transitions, stout).\n"
+    "Learning algorithm:\n"
+    "\tOSTIA: ostia(sample, sigma, gamma)."
+)
+\end{lstlisting}
+
+
+
+\section*{Appendix: unit tests}
+
+\subsection*{Unit test for Grammar}
+
+\begin{lstlisting}[language=Python]
+#!/bin/python3
+
+"""A module with the unittests for the grammar module. Copyright (C) 2019 Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+import sys, os
+
+sys.path.insert(0, os.path.join(os.path.abspath(".."), ""))
+
+import unittest
+from grammar import L
+
+
+class TestGeneralLanguages(unittest.TestCase):
+    """Tests for the L class."""
+
+    def test_good_ngram_standard_edges(self):
+        """Checks if ill-formed ngrams are correctly recognized, and that the
+        well-formed ones are not blocked.
+
+        Tests standard edge-markers.
+        """
+        l = L()
+        self.assertTrue(l.well_formed_ngram(("a", "b", "a")))
+        self.assertTrue(l.well_formed_ngram((">", "a", "b")))
+        self.assertTrue(l.well_formed_ngram((">", "a", "<")))
+        self.assertTrue(l.well_formed_ngram((">", "<")))
+        self.assertTrue(l.well_formed_ngram(("b", "<")))
+        self.assertTrue(l.well_formed_ngram(("a", "a", "a", "a", "a")))
+
+        self.assertFalse(l.well_formed_ngram(("a", ">")))
+        self.assertFalse(l.well_formed_ngram(("?", "d", "<", ">")))
+        self.assertFalse(l.well_formed_ngram(("a", ">", "a")))
+        self.assertFalse(l.well_formed_ngram((">", ">")))
+        self.assertFalse(l.well_formed_ngram(("<")))
+
+    def test_good_ngram_non_standard_edges(self):
+        """Checks if ill-formed ngrams are correctly recognized, and that the
+        well-formed ones are not blocked.
+
+        Tests user-provided edge markers.
+        """
+        l = L()
+        l.edges = ["$", "#"]
+        self.assertTrue(l.well_formed_ngram(("$", "a", "b")))
+        self.assertTrue(l.well_formed_ngram(("$", "a", "#")))
+        self.assertTrue(l.well_formed_ngram(("$", "#")))
+        self.assertTrue(l.well_formed_ngram(("b", "#")))
+
+        self.assertFalse(l.well_formed_ngram(("a", "$")))
+        self.assertFalse(l.well_formed_ngram(("$", "d", "#", "$")))
+        self.assertFalse(l.well_formed_ngram(("a", "$", "a")))
+        self.assertFalse(l.well_formed_ngram(("$", "$")))
+        self.assertFalse(l.well_formed_ngram(("#")))
+
+    def test_ngram_gen(self):
+        """Checks if ngram generation method produces the expected results."""
+        l = L(alphabet=["a", "b"])
+        ngrams = l.generate_all_ngrams(l.alphabet, l.k)
+
+        ng = {
+            (">", "<"),
+            (">", "a"),
+            ("a", "<"),
+            (">", "b"),
+            ("b", "<"),
+            ("a", "a"),
+            ("b", "b"),
+            ("b", "a"),
+            ("a", "b"),
+        }
+        self.assertTrue(set(ngrams) == ng)
+
+    def test_switch_same_alpha(self):
+        """Checks if the generated grammar is correct when all alphabet symbols
+        are used in the grammar, also checks that polarity was changed."""
+        g = [(">", "a"), ("b", "<"), ("a", "b"), ("b", "a")]
+        l = L(grammar=g)
+        l.extract_alphabet()
+
+        old_polarity = l.check_polarity()
+
+        g_opp = {(">", "<"), ("a", "<"), (">", "b"), ("b", "b"), ("a", "a")}
+        self.assertTrue(set(l.opposite_polarity(l.alphabet)) == g_opp)
+        self.assertFalse(old_polarity == l.check_polarity)
+
+    def test_switch_different_alpha(self):
+        """Checks if the generated grammar is correct when not all alphabet
+        symbols are used in the grammar; also checks that polarity was
+        changed."""
+        g = [(">", "b"), ("b", "<"), (">", "<")]
+        l = L(grammar=g)
+        l.alphabet = ["a", "b"]
+
+        old_polarity = l.check_polarity()
+
+        g_opp = {(">", "a"), ("a", "<"), ("a", "a"), ("b", "a"), ("a", "b"), ("b", "b")}
+        self.assertTrue(set(l.opposite_polarity(l.alphabet)) == g_opp)
+        self.assertFalse(old_polarity == l.check_polarity)
+
+    def test_change_polarity(self):
+        """Tests the correctness of change_polarity."""
+        a = L(polar="n")
+        a.change_polarity(new_polarity="n")
+        self.assertTrue(a.check_polarity() == "n")
+        a.change_polarity()
+        self.assertFalse(a.check_polarity() == "n")
+
+        b = L()
+        old_polarity = b.check_polarity()
+        b.change_polarity()
+        self.assertTrue(b.check_polarity() != old_polarity)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+\end{lstlisting}
+
+
+\subsection*{Unit test for SL}
+
+\begin{lstlisting}[language=Python]
+#!/bin/python3
+
+"""A module with the unittests for the SL module. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+import unittest
+from sl_class import *
+
+
+class TestSLLanguages(unittest.TestCase):
+    """Tests for the SL class."""
+
+    def test_scan_pos(self):
+        """Checks if well-formed strings are detected correctly given the
+        provided positive grammar."""
+        slp = SL()
+        slp.grammar = [(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")]
+        slp.alphabet = ["a", "b"]
+        self.assertTrue(slp.scan("abab"))
+        self.assertTrue(slp.scan("ab"))
+        self.assertTrue(slp.scan("ababababab"))
+        self.assertFalse(slp.scan("abb"))
+        self.assertFalse(slp.scan("a"))
+        self.assertFalse(slp.scan(""))
+
+    def test_scan_neg(self):
+        """Checks if well-formed strings are detected correctly given the
+        provided negative grammar."""
+        sln = SL(polar="n")
+        sln.grammar = [("b", "a"), ("a", "b")]
+        sln.alphabet = ["a", "b"]
+        self.assertFalse(sln.scan("abab"))
+        self.assertFalse(sln.scan("ab"))
+        self.assertFalse(sln.scan("ababababab"))
+        self.assertTrue(sln.scan("bbbb"))
+        self.assertTrue(sln.scan("aaaaa"))
+        self.assertTrue(sln.scan(""))
+
+    def test_ngramize_2(self):
+        """Checks if ngramize() correctly constructs bigrams."""
+        sl = SL()
+        sl.data = ["aaa", "bbb"]
+        ngrams = set(sl.ngramize_data())
+        goal = {(">", "b"), (">", "a"), ("a", "a"), ("b", "b"), ("a", "<"), ("b", "<")}
+        self.assertTrue(ngrams == goal)
+
+    def test_ngramize_3(self):
+        """Check if ngramize() correctly constructs trigrams."""
+        sl = SL()
+        sl.k = 3
+        sl.data = ["aaa", "bbb"]
+        ngrams = set(sl.ngramize_data())
+        goal = {
+            (">", "a", "a"),
+            (">", "b", "b"),
+            ("b", "b", "<"),
+            ("b", "<", "<"),
+            ("a", "<", "<"),
+            (">", ">", "a"),
+            ("a", "a", "a"),
+            ("a", "a", "<"),
+            (">", ">", "b"),
+            ("b", "b", "b"),
+        }
+        self.assertTrue(ngrams == goal)
+
+    def test_learn(self):
+        """Checks if positive and negative grammars are learned correctly."""
+        data = ["abab", "ababab"]
+        gpos = {(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")}
+        gneg = {(">", "<"), ("a", "<"), (">", "b"), ("b", "b"), ("a", "a")}
+
+        a = SL(data=data, alphabet=["a", "b"])
+        a.learn()
+        self.assertTrue(set(a.grammar) == gpos)
+
+        a.change_polarity()
+        a.learn()
+        self.assertTrue(set(a.grammar) == gneg)
+
+    def test_fsmize_pos(self):
+        """Checks if the transitions of the fsm corresponding to the positive
+        grammar are constructed correctly."""
+        sl = SL(polar="p")
+        sl.alphabet = ["a", "b"]
+        sl.grammar = [(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")]
+        sl.fsmize()
+
+        f = FSM(initial=">", final="<")
+        f.sl_to_fsm([(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")])
+
+        self.assertTrue(set(sl.fsm.transitions) == set(f.transitions))
+
+    def test_fsmize_neg(self):
+        """Checks if the transitions of the fsm corresponding to the negative
+        grammar are constructed correctly."""
+        sl = SL()
+        sl.change_polarity("n")
+        sl.alphabet = ["a", "b"]
+        sl.grammar = [(">", "<"), ("a", "<"), (">", "b"), ("b", "b"), ("a", "a")]
+        sl.fsmize()
+
+        f = FSM(initial=">", final="<")
+        f.sl_to_fsm([(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")])
+
+        self.assertTrue(set(sl.fsm.transitions) == set(f.transitions))
+
+    def test_generate_sample(self):
+        """Checks if all generated data points are actually well-formed with
+        respect to the given grammar, and that the number of generated data
+        points is correct."""
+        sl = SL()
+        sl.alphabet = ["a", "b"]
+        sl.grammar = [(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")]
+        sl.fsmize()
+
+        sample = sl.generate_sample(n=10)
+        self.assertTrue(all([sl.scan(i) for i in sample]))
+        self.assertTrue(len(sample) == 10)
+
+    def test_switch_polarity(self):
+        """Makes sure that switch_polarity actually switches the grammar to the
+        opposite, and that switching it again will result in the original
+        grammar."""
+        gpos = {(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")}
+        gneg = {(">", "<"), ("a", "<"), (">", "b"), ("b", "b"), ("a", "a")}
+        sl = SL(polar="n")
+        sl.alphabet = ["a", "b"]
+        sl.grammar = list(gneg)
+
+        sl.switch_polarity()
+        self.assertTrue(set(sl.grammar) == gpos)
+        self.assertTrue(sl.check_polarity() == "p")
+
+        sl.switch_polarity()
+        self.assertTrue(set(sl.grammar) == gneg)
+        self.assertTrue(sl.check_polarity() == "n")
+
+    def test_clean_grammar_2_pos(self):
+        """Tests if clean_grammar correctly cleans 2-local positive SL
+        grammar."""
+        goal = {(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")}
+        s = SL()
+        s.grammar = [
+            (">", "a"),
+            ("b", "a"),
+            ("a", "b"),
+            ("b", "<"),
+            (">", "g"),
+            ("f", "<"),
+            ("t", "t"),
+        ]
+        s.extract_alphabet()
+        s.clean_grammar()
+        self.assertTrue(set(s.grammar) == goal)
+
+    def test_clean_grammar_2_neg(self):
+        """Tests if clean_grammar correctly cleans 2-local negative SL
+        grammar."""
+        goal = {(">", "<"), ("a", "<"), (">", "b"), ("b", "b"), ("a", "a")}
+        a = SL(polar="n")
+        a.alphabet = ["a", "b"]
+        a.grammar = [
+            (">", "<"),
+            ("a", "<"),
+            (">", "b"),
+            ("b", "b"),
+            ("a", "a"),
+            (">", "<"),
+            ("b", "b"),
+        ]
+        a.clean_grammar()
+        self.assertTrue(set(a.grammar) == goal)
+
+    def test_clean_grammar_3_pos(self):
+        """Tests if clean_grammar correctly cleans 2-local positive SL
+        grammar."""
+        goal = {
+            (">", "a", "a"),
+            (">", "b", "b"),
+            ("b", "b", "<"),
+            ("b", "<", "<"),
+            ("a", "<", "<"),
+            (">", ">", "a"),
+            ("a", "a", "a"),
+            ("a", "a", "<"),
+            (">", ">", "b"),
+            ("b", "b", "b"),
+        }
+        s = SL()
+        s.grammar = [
+            (">", "a", "a"),
+            (">", "b", "b"),
+            ("b", "b", "<"),
+            ("b", "<", "<"),
+            ("a", "<", "<"),
+            (">", ">", "a"),
+            ("a", "a", "a"),
+            ("a", "a", "<"),
+            (">", ">", "b"),
+            ("b", "b", "b"),
+            (">", ">", "f"),
+            ("b", "d", "c"),
+        ]
+        s.extract_alphabet()
+        s.clean_grammar()
+        self.assertTrue(set(s.grammar) == goal)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+\end{lstlisting}
+
+\subsection*{Unit test for SP}
+
+\begin{lstlisting}[language=Python]
+#!/bin/python3
+
+"""A module with the unittests for the SP module. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+import unittest
+from sp_class import *
+
+
+class TestSPLanguages(unittest.TestCase):
+    """Tests for the SP class."""
+
+    def test_subsequences_2(self):
+        """Tests extraction of 2-subsequences."""
+        str1 = "abab"
+        ssq1 = {("a", "a"), ("a", "b"), ("b", "a"), ("b", "b")}
+        str2 = "a"
+        ssq2 = set()
+        str3 = "abcde"
+        ssq3 = {
+            tuple(i)
+            for i in ["ab", "ac", "ad", "ae", "bc", "bd", "be", "cd", "ce", "de"]
+        }
+        sp = SP()
+        self.assertTrue(set(sp.subsequences(str1)) == ssq1)
+        self.assertTrue(set(sp.subsequences(str2)) == ssq2)
+        self.assertTrue(set(sp.subsequences(str3)) == ssq3)
+
+    def test_subsequences_3(self):
+        """Tests extraction of 3-subsequences."""
+        str1 = "abab"
+        ssq1 = {tuple(i) for i in ["aba", "abb", "bab", "aab"]}
+        str2 = "abcde"
+        ssq2 = {
+            tuple(i)
+            for i in [
+                "abc",
+                "abd",
+                "abe",
+                "acd",
+                "ace",
+                "ade",
+                "bcd",
+                "bce",
+                "bde",
+                "cde",
+            ]
+        }
+        sp = SP(k=3)
+        self.assertTrue(set(sp.subsequences(str1)) == ssq1)
+        self.assertTrue(set(sp.subsequences(str2)) == ssq2)
+
+    def test_learn_pos(self):
+        """Tests learning of the positive grammar."""
+        data = ["abab", "abcde"]
+        goal = {
+            tuple(i)
+            for i in [
+                "aba",
+                "abb",
+                "bab",
+                "aab",
+                "abc",
+                "abd",
+                "abe",
+                "acd",
+                "ace",
+                "ade",
+                "bcd",
+                "bce",
+                "bde",
+                "cde",
+            ]
+        }
+        sp = SP(k=3)
+        sp.data = data
+        sp.alphabet = ["a", "b", "c", "d", "e"]
+        sp.learn()
+        self.assertTrue(set(sp.grammar) == goal)
+
+    def test_learn_neg(self):
+        """Tests learning of the negative grammar."""
+        data = ["aaaaabbbb", "abbbb", "aaab"]
+        goal = {tuple("ba")}
+        sp = SP(polar="n")
+        sp.data = data
+        sp.alphabet = ["b", "a"]
+        sp.learn()
+        self.assertTrue(set(sp.grammar) == goal)
+
+    def test_change_polarity(self):
+        """Tests change_polarity function."""
+        sp1 = SP(polar="p")
+        sp1.change_polarity()
+        self.assertTrue(sp1.check_polarity() == "n")
+
+        sp2 = SP()
+        sp2.change_polarity("p")
+        sp2.change_polarity()
+        self.assertTrue(sp2.check_polarity() == "n")
+
+        sp3 = SP(polar="n")
+        sp3.change_polarity()
+        self.assertTrue(sp3.check_polarity() == "p")
+
+        sp4 = SP()
+        sp4.change_polarity("n")
+        sp4.change_polarity()
+        self.assertTrue(sp4.check_polarity() == "p")
+
+        sp5 = SP()
+        sp5.change_polarity("p")
+        self.assertTrue(sp5.check_polarity() == "p")
+
+    def test_scan_neg(self):
+        """Tests if automata correctly recognize illicit substructures."""
+        sp = SP(polar="n")
+        sp.grammar = [tuple("aba")]
+        sp.k = 3
+        sp.extract_alphabet()
+        sp.fsmize()
+
+        self.assertTrue(sp.scan("aaaa"))
+        self.assertTrue(sp.scan("aaabbbbbb"))
+        self.assertTrue(sp.scan("baaaaaaabbbbb"))
+        self.assertTrue(sp.scan("a"))
+        self.assertTrue(sp.scan("b"))
+
+        self.assertFalse(sp.scan("aaaabaabbbba"))
+        self.assertFalse(sp.scan("abababba"))
+        self.assertFalse(sp.scan("abbbbabbaababab"))
+
+    def test_generate_item(self):
+        """Tests string generation."""
+        sp = SP(polar="n")
+        sp.grammar = [tuple("aba")]
+        sp.k = 3
+        sp.extract_alphabet()
+        sp.fsmize()
+
+        for i in range(30):
+            self.assertTrue(sp.scan(sp.generate_item()))
+
+    def test_generate_sample_pos(self):
+        """Tests sample generation when the grammar is positive."""
+        sp = SP()
+        sp.grammar = [tuple(i) for i in ["ab", "ba", "bb"]]
+        sp.extract_alphabet()
+        sp.fsmize()
+
+        a = sp.generate_sample(n=10)
+        self.assertTrue(len(a) == 10)
+
+    def test_generate_sample_neg(self):
+        """Tests sample generation when the grammar is negative."""
+        sp = SP(polar="n")
+        sp.grammar = [tuple("aba")]
+        sp.k = 3
+        sp.extract_alphabet()
+        sp.fsmize()
+
+        a = sp.generate_sample(n=15, repeat=False)
+        self.assertTrue(len(set(a)) == 15)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+\end{lstlisting}
+
+\subsection*{Unit test for TSL}
+
+\begin{lstlisting}[language=Python]
+#!/bin/python3
+
+"""A module with the unittests for the TSL module. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+import unittest
+from tsl_class import *
+
+
+class TestTSLLanguages(unittest.TestCase):
+    """Tests for the TSL class."""
+
+    def test_tier_learning(self):
+        """Tests the tier learning function."""
+        a = TSL()
+        a.data = ["aaaab", "abaaaa", "b"]
+        a.alphabet = ["a", "b"]
+        a.learn_tier()
+        self.assertTrue(a.tier == ["b"])
+
+        b = TSL()
+        b.data = ["ccaccaccbc", "acbbaababc", "ababbab"]
+        b.alphabet = ["a", "b", "c"]
+        b.learn_tier()
+        self.assertTrue(set(b.tier) == {"a", "b"})
+
+    def test_tier_learning_raised_issue(self):
+        """Checks a specific case related to GitHub issue #6."""
+        tsl = TSL()
+        tsl.data = [
+            "aa", "ab", "ax", "ay", 
+            "ba", "bb", "bx", "by", 
+            "xa", "xb", "xx", 
+            "ya", "yb", "yx", "yy"
+        ]
+        tsl.alphabet = ["a", "b", "x", "y"]
+        tsl.learn_tier()
+        self.assertTrue(set(tsl.tier) == {"x", "y"})
+
+    def test_tier_image(self):
+        """Tests the erasing function."""
+        a = TSL()
+        a.tier = ["a"]
+        self.assertTrue(a.tier_image("cvamda") == "aa")
+
+    def test_learn_pos(self):
+        """Tests learning of the positive TSL grammar."""
+        a = TSL()
+        a.data = [
+            "o",
+            "oko",
+            "a",
+            "aka",
+            "oo",
+            "aa",
+            "kak",
+            "kok",
+            "kk",
+            "kkakka",
+            "akk",
+            "kkokko",
+            "okk",
+        ]
+        a.extract_alphabet()
+        a.learn()
+        goal = {
+            (">", "<"),
+            (">", "a"),
+            ("a", "a"),
+            (">", "o"),
+            ("o", "o"),
+            ("a", "<"),
+            ("o", "<"),
+        }
+        self.assertTrue(set(a.grammar) == goal)
+        self.assertTrue(set(a.tier) == {"a", "o"})
+
+    def test_learn_neg(self):
+        """Tests learning of the negative TSL grammar."""
+        a = TSL(polar="n")
+        a.data = [
+            "o",
+            "oko",
+            "a",
+            "aka",
+            "oo",
+            "aa",
+            "kak",
+            "kok",
+            "kk",
+            "kkakka",
+            "akk",
+            "kkokko",
+            "okk",
+        ]
+        a.extract_alphabet()
+        a.learn()
+        goal = {("a", "o"), ("o", "a")}
+        self.assertTrue(set(a.grammar) == goal)
+        self.assertTrue(set(a.tier) == {"a", "o"})
+
+    def test_scan_pos(self):
+        """Tests recognition of strings."""
+        a = TSL(polar="p")
+        a.data = [
+            "o",
+            "oko",
+            "a",
+            "aka",
+            "oo",
+            "aa",
+            "kak",
+            "kok",
+            "kk",
+            "kkakka",
+            "akk",
+            "kkokko",
+            "okk",
+        ]
+        a.extract_alphabet()
+        a.learn()
+        self.assertTrue(a.scan("akkaka"))
+        self.assertTrue(a.scan("kkk"))
+        self.assertTrue(a.scan("okoko"))
+        self.assertTrue(a.scan("ookokkk"))
+        self.assertFalse(a.scan("okoak"))
+        self.assertFalse(a.scan("okakok"))
+        self.assertFalse(a.scan("kakokak"))
+
+    def test_scan_neg(self):
+        """Tests recognition of strings."""
+        a = TSL(polar="n")
+        a.data = [
+            "o",
+            "oko",
+            "a",
+            "aka",
+            "oo",
+            "aa",
+            "kak",
+            "kok",
+            "kk",
+            "kkakka",
+            "akk",
+            "kkokko",
+            "okk",
+        ]
+        a.extract_alphabet()
+        a.learn()
+        self.assertTrue(a.scan("akkaka"))
+        self.assertTrue(a.scan("kkk"))
+        self.assertTrue(a.scan("okoko"))
+        self.assertTrue(a.scan("ookokkk"))
+        self.assertFalse(a.scan("okoak"))
+        self.assertFalse(a.scan("okakok"))
+        self.assertFalse(a.scan("kakokak"))
+
+    def test_generate_item_pos(self):
+        """Tests that the generated items are grammatical."""
+        a = TSL(polar="p")
+        a.data = [
+            "o",
+            "oko",
+            "a",
+            "aka",
+            "oo",
+            "aa",
+            "kak",
+            "kok",
+            "kk",
+            "kkakka",
+            "akk",
+            "kkokko",
+            "okk",
+        ]
+        a.extract_alphabet()
+        a.learn()
+        gen_items = [a.generate_item() for i in range(15)]
+        for i in gen_items:
+            self.assertTrue(a.scan(i))
+
+    def test_generate_item_neg(self):
+        """Tests that the generated items are grammatical."""
+        a = TSL(polar="n")
+        a.data = [
+            "o",
+            "oko",
+            "a",
+            "aka",
+            "oo",
+            "aa",
+            "kak",
+            "kok",
+            "kk",
+            "kkakka",
+            "akk",
+            "kkokko",
+            "okk",
+        ]
+        a.extract_alphabet()
+        a.learn()
+        gen_items = [a.generate_item() for i in range(15)]
+        for i in gen_items:
+            self.assertTrue(a.scan(i))
+
+    def test_change_polarity_pos_to_neg(self):
+        """Checks that the polarity switching works."""
+        a = TSL(polar="p")
+        a.grammar = [
+            (">", "o"),
+            ("a", "<"),
+            ("a", "a"),
+            ("o", "o"),
+            ("o", "<"),
+            (">", "a"),
+            (">", "<"),
+        ]
+        a.tier = ["a", "o"]
+        a.switch_polarity()
+        self.assertTrue(set(a.grammar) == {("a", "o"), ("o", "a")})
+        self.assertTrue(a.check_polarity() == "n")
+
+        b = TSL(polar="p")
+        b.data = ["aaaab", "abaaaa", "b"]
+        b.extract_alphabet()
+        b.learn()
+        b.switch_polarity()
+        self.assertTrue(set(b.grammar) == {("b", "b"), (">", "<")})
+        self.assertTrue(b.check_polarity() == "n")
+
+    def test_change_polarity_neg_to_pos(self):
+        """Checks that the polarity switching works."""
+        a = TSL(polar="n")
+        expected = {
+            (">", "o"),
+            ("a", "<"),
+            ("a", "a"),
+            ("o", "o"),
+            ("o", "<"),
+            (">", "a"),
+            (">", "<"),
+        }
+        a.grammar = [("a", "o"), ("o", "a")]
+        a.tier = ["a", "o"]
+        a.switch_polarity()
+        self.assertTrue(set(a.grammar) == expected)
+        self.assertTrue(a.check_polarity() == "p")
+
+        b = TSL(polar="n")
+        b.data = ["aaaab", "abaaaa", "b"]
+        b.extract_alphabet()
+        b.learn()
+        b.switch_polarity()
+        self.assertTrue(set(b.grammar) == {(">", "b"), ("b", "<")})
+        self.assertTrue(b.check_polarity() == "p")
+
+    def test_polarity_raised_issue(self):
+        """Checks a specific case from the GitHub issue."""
+        a = TSL(polar="p")
+        a.grammar = [(">", "a"), ("a", "b"), ("b", "<"), ("b", "a")]
+        a.tier = ["a", "b"]
+        a.switch_polarity()
+        expected = {("a", "a"), ("a", "<"), ("b", "b"), (">", "b"), (">", "<")}
+        self.assertTrue(set(a.grammar) == expected)
+        self.assertTrue(a.check_polarity() == "n")
+
+    def test_generate_sample(self):
+        a = TSL(polar="p")
+        a.grammar = [(">", "a"), ("a", "b"), ("b", "<"), ("b", "a")]
+        a.tier = ["a", "b"]
+        a.alphabet = ["a", "b", "c"]
+
+        sample = a.generate_sample(n=10, repeat=False)
+        for i in sample:
+            self.assertTrue(a.scan(i))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+\end{lstlisting}
+
+\subsection*{Unit test for MTSL}
+
+\begin{lstlisting}[language=Python]
+#!/bin/python3
+
+"""A module with the unit tests for the MTSL module. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+import unittest
+import unittest.mock
+from mtsl_class import *
+
+
+class TestMTSLLanguages(unittest.TestCase):
+    """Tests for the MTSL class."""
+
+    def test_grammar_learning_neg(self):
+        """Tests the learner."""
+        a = MTSL(polar="n")
+        VC = [
+            "aabbaabb",
+            "abab",
+            "aabbab",
+            "abaabb",
+            "aabaab",
+            "abbabb",
+            "ooppoopp",
+            "opop",
+            "ooppop",
+            "opoopp",
+            "oopoop",
+            "oppopp",
+            "aappaapp",
+            "apap",
+            "aappap",
+            "apaapp",
+            "aapaap",
+            "appapp",
+            "oobboobb",
+            "obob",
+            "oobbob",
+            "oboobb",
+            "ooboob",
+            "obbobb",
+            "aabb",
+            "ab",
+            "aab",
+            "abb",
+            "oopp",
+            "op",
+            "oop",
+            "opp",
+            "oobb",
+            "ob",
+            "oob",
+            "obb",
+            "aapp",
+            "ap",
+            "aap",
+            "app",
+            "aaa",
+            "ooo",
+            "bbb",
+            "ppp",
+            "a",
+            "o",
+            "b",
+            "p",
+            "",
+        ]
+        expected = {
+            ("a", "o"): [("a", "o"), ("o", "a")],
+            ("b", "p"): [("b", "p"), ("p", "b")],
+        }
+        a.data = VC[:]
+        a.extract_alphabet()
+        a.learn()
+
+        correct = True
+        for i in a.grammar:
+            if not (i in expected and set(a.grammar[i]) == set(expected[i])):
+                correct = False
+        if len(a.grammar) != len(expected):
+            correct = False
+
+        self.assertTrue(correct)
+
+    def test_grammar_learning_pos(self):
+        """Tests the learner."""
+        b = MTSL(polar="p")
+        VC = [
+            "aabbaabb",
+            "abab",
+            "aabbab",
+            "abaabb",
+            "aabaab",
+            "abbabb",
+            "ooppoopp",
+            "opop",
+            "ooppop",
+            "opoopp",
+            "oopoop",
+            "oppopp",
+            "aappaapp",
+            "apap",
+            "aappap",
+            "apaapp",
+            "aapaap",
+            "appapp",
+            "oobboobb",
+            "obob",
+            "oobbob",
+            "oboobb",
+            "ooboob",
+            "obbobb",
+            "aabb",
+            "ab",
+            "aab",
+            "abb",
+            "oopp",
+            "op",
+            "oop",
+            "opp",
+            "oobb",
+            "ob",
+            "oob",
+            "obb",
+            "aapp",
+            "ap",
+            "aap",
+            "app",
+            "aaa",
+            "ooo",
+            "bbb",
+            "ppp",
+            "a",
+            "o",
+            "b",
+            "p",
+            "",
+        ]
+        expected2 = {
+            ("a", "o"): [
+                (">", "a"),
+                ("a", "<"),
+                ("a", "a"),
+                (">", "o"),
+                ("o", "o"),
+                ("o", "<"),
+                (">", "<"),
+            ],
+            ("b", "p"): [
+                (">", "b"),
+                ("b", "b"),
+                ("b", "<"),
+                (">", "p"),
+                ("p", "p"),
+                ("p", "<"),
+                (">", "<"),
+            ],
+        }
+
+        b.data = VC[:]
+        b.extract_alphabet()
+        b.learn()
+
+        correct = True
+        for i in b.grammar:
+            if not (i in expected2 and set(b.grammar[i]) == set(expected2[i])):
+                correct = False
+        if len(b.grammar) != len(expected2):
+            correct = False
+
+        self.assertTrue(correct)
+
+    @unittest.mock.patch(
+        # Artificially enforce a particular case of list(set())'s naturally-
+        # occurring non-determinism with respect to ordering: 
+        # make it ascending if odd number of elements, descending if even.
+
+        # While impractical, this re-implementation of list(set()) is perfectly
+        # legal. It could be discarded, but that way, the test becomes
+        # non-deterministic and reveals the bug only in some 10% of runs.
+
+        "mtsl_class.list", 
+        new=lambda x: sorted(x, reverse=len(x) % 2 == 0) \
+                      if type(x) == set else list(x)
+    )
+    def test_grammar_learning_raised_issue(self):
+        """Checks a specific case related to GitHub issue #6."""
+        mtsl = MTSL(k=2, polar="n")
+        mtsl.data = ["axb", "ayxb", "azxb", "azxyb"]
+        mtsl.extract_alphabet()
+        mtsl.learn()
+        self.assertTrue(all({*tier} == {"a", "b", "x"} for tier, restrict \
+                            in mtsl.grammar.items() if ("a", "b") in restrict))
+
+    def test_convert_pos_to_neg(self):
+        """Tests conversion of a positive grammar to a negative one."""
+        z = MTSL(polar="p")
+        z.grammar = {
+            ("a", "o"): [
+                (">", "a"),
+                ("a", "<"),
+                ("a", "a"),
+                (">", "o"),
+                ("o", "o"),
+                ("o", "<"),
+                (">", "<"),
+            ],
+            ("b", "p"): [
+                (">", "b"),
+                ("b", "b"),
+                ("b", "<"),
+                (">", "p"),
+                ("p", "p"),
+                ("p", "<"),
+                (">", "<"),
+            ],
+        }
+        z.switch_polarity()
+        expected = {
+            ("a", "o"): [("a", "o"), ("o", "a")],
+            ("b", "p"): [("b", "p"), ("p", "b")],
+        }
+        self.assertTrue(z.grammar == expected)
+
+    def test_scan_pos(self):
+        """Tests scanning using a positive grammar."""
+        c = MTSL(polar="p")
+        c.grammar = {
+            ("a", "o"): [
+                (">", "a"),
+                ("a", "<"),
+                ("a", "a"),
+                (">", "o"),
+                ("o", "o"),
+                ("o", "<"),
+                (">", "<"),
+            ],
+            ("b", "p"): [
+                (">", "b"),
+                ("b", "b"),
+                ("b", "<"),
+                (">", "p"),
+                ("p", "p"),
+                ("p", "<"),
+                (">", "<"),
+            ],
+        }
+        for s in ["apapappa", "ppp", "appap", "popo", "bbbooo"]:
+            self.assertTrue(c.scan(s))
+        for s in ["aoap", "popa", "pbapop", "pabp", "popoa"]:
+            self.assertFalse(c.scan(s))
+
+    def test_scan_neg(self):
+        """Tests scanning using a positive grammar."""
+        d = MTSL(polar="n")
+        d.grammar = {
+            ("a", "o"): [("a", "o"), ("o", "a")],
+            ("b", "p"): [("b", "p"), ("p", "b")],
+        }
+        for s in ["apapappa", "ppp", "appap", "popo", "bbbooo"]:
+            self.assertTrue(d.scan(s))
+        for s in ["aoap", "popa", "pbapop", "pabp", "popoa"]:
+            self.assertFalse(d.scan(s))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+\end{lstlisting}
+
+\subsection*{Unit test for FSA}
+
+\begin{lstlisting}[language=Python]
+#!/bin/python3
+
+"""A module with the unittests for the fsm module. Copyright (C) 2019  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+import unittest
+from fsm import FSM
+
+
+class TestFSM(unittest.TestCase):
+    """Tests for the FSM class."""
+
+    def test_sl_to_fsm_2(self):
+        """Checks if a 2-SL grammar translates to FSM correctly."""
+        f = FSM(initial=">", final="<")
+        grammar = [(">", "a"), ("b", "a"), ("a", "b"), ("b", "<")]
+        f.sl_to_fsm(grammar)
+
+        tr = {
+            ((">",), "a", ("a",)),
+            (("b",), "a", ("a",)),
+            (("a",), "b", ("b",)),
+            (("b",), "<", ("<",)),
+        }
+        self.assertTrue(set(f.transitions) == tr)
+
+    def test_sl_to_fsm_3(self):
+        """Checks if a 3-SL grammar translates to FSM correctly."""
+        f = FSM(initial=">", final="<")
+        grammar = [
+            (">", "a", "b"),
+            ("a", "b", "a"),
+            ("b", "a", "b"),
+            ("a", "b", "<"),
+            (">", ">", "a"),
+            ("b", "<", "<"),
+        ]
+        f.sl_to_fsm(grammar)
+
+        tr = {
+            ((">", "a"), "b", ("a", "b")),
+            (("a", "b"), "a", ("b", "a")),
+            (("b", "a"), "b", ("a", "b")),
+            (("a", "b"), "<", ("b", "<")),
+            ((">", ">"), "a", (">", "a")),
+            (("b", "<"), "<", ("<", "<")),
+        }
+        self.assertTrue(set(f.transitions) == tr)
+
+    def test_scan_sl_2(self):
+        """Checks if a FSM for 2-SL grammar can correctly recognize strings."""
+        f = FSM(initial=">", final="<")
+        f.transitions = [
+            ((">",), "a", ("a",)),
+            (("b",), "a", ("a",)),
+            (("a",), "b", ("b",)),
+            (("b",), "<", ("<",)),
+        ]
+
+        self.assertTrue(f.scan_sl(">abab<"))
+        self.assertTrue(f.scan_sl(">ab<"))
+        self.assertTrue(f.scan_sl(">abababab<"))
+
+        self.assertFalse(f.scan_sl("><"))
+        self.assertFalse(f.scan_sl(">a<"))
+        self.assertFalse(f.scan_sl(">ba<"))
+        self.assertFalse(f.scan_sl(">ababbab<"))
+
+    def test_scan_sl_3(self):
+        """Checks if a FSM for 3-SL grammar can correctly recognize strings."""
+        f = FSM(initial=">", final="<")
+        f.transitions = [
+            ((">", "a"), "b", ("a", "b")),
+            (("a", "b"), "a", ("b", "a")),
+            (("b", "a"), "b", ("a", "b")),
+            (("a", "b"), "<", ("b", "<")),
+            ((">", ">"), "a", (">", "a")),
+            (("b", "<"), "<", ("<", "<")),
+        ]
+
+        self.assertTrue(f.scan_sl(">>abab<<"))
+        self.assertTrue(f.scan_sl(">ab<"))
+        self.assertTrue(f.scan_sl(">>abababab<<"))
+
+        self.assertFalse(f.scan_sl(">><<"))
+        self.assertFalse(f.scan_sl(">>a<<"))
+        self.assertFalse(f.scan_sl(">>ba<<"))
+        self.assertFalse(f.scan_sl(">>ababbab<<"))
+
+    def test_trim_fsm_2(self):
+        f = FSM(initial=">", final="<")
+        f.transitions = [
+            ((">",), "a", ("a",)),
+            (("b",), "a", ("a",)),
+            (("a",), "b", ("b",)),
+            (("b",), "<", ("<",)),
+            ((">",), "c", ("c",)),
+            (("d",), "<", ("<",)),
+        ]
+        goal = {
+            ((">",), "a", ("a",)),
+            (("b",), "a", ("a",)),
+            (("a",), "b", ("b",)),
+            (("b",), "<", ("<",)),
+        }
+        f.trim_fsm()
+        self.assertTrue(set(f.transitions) == goal)
+
+    def test_trim_fsm_3(self):
+        f = FSM(initial=">", final="<")
+        f.transitions = [
+            ((">", "a"), "b", ("a", "b")),
+            (("a", "b"), "a", ("b", "a")),
+            (("b", "a"), "b", ("a", "b")),
+            (("a", "b"), "<", ("b", "<")),
+            ((">", ">"), "a", (">", "a")),
+            (("b", "<"), "<", ("<", "<")),
+            ((">", "b"), "j", ("b", "j")),
+            ((">", ">"), "j", (">", "j")),
+            (("j", "k"), "o", ("k", "o")),
+        ]
+        goal = {
+            ((">", "a"), "b", ("a", "b")),
+            (("a", "b"), "a", ("b", "a")),
+            (("b", "a"), "b", ("a", "b")),
+            (("a", "b"), "<", ("b", "<")),
+            ((">", ">"), "a", (">", "a")),
+            (("b", "<"), "<", ("<", "<")),
+        }
+        f.trim_fsm()
+        self.assertTrue(set(f.transitions) == goal)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+\end{lstlisting}
+
+\subsection*{Unit test for OSTIA}
+
+\begin{lstlisting}[language=Python]
+#!/bin/python3
+
+"""A module with the unittests for the fsm module. Copyright (C) 2020  Alena
+Aksenova.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 3 of the License, or (at your
+option) any later version.
+"""
+
+import unittest
+from ostia import ostia
+
+
+class TestOSTIA(unittest.TestCase):
+    """Tests for the OSTIA learner.
+
+    Warning: updated versions of the learner might require updating
+    the unittests.
+    """
+
+    def test_ostia_success(self):
+        """Checks if OSTIA can learn a rule rewriting "a" as "1" if "a" is
+        final and as "0" otherwise, and always mapping "b" to "1"."""
+        S = [
+            ("a", "1"),
+            ("b", "1"),
+            ("aa", "01"),
+            ("ab", "01"),
+            ("aba", "011"),
+            ("aaa", "001"),
+        ]
+        t = ostia(S, ["a", "b"], ["0", "1"])
+
+        transitions = {
+            ("", "a", "", "a"),
+            ("", "b", "1", ""),
+            ("a", "a", "0", "a"),
+            ("a", "b", "01", ""),
+        }
+        stout = {"": "", "a": "1"}
+
+        self.assertTrue(set(t.E) == transitions)
+        self.assertTrue(stout == t.stout)
+
+    def test_ostia_fail(self):
+        """Checks that OTSIA cannot learn an unbounded tone plateauing."""
+        S = [
+            ("HHH", "HHH"),
+            ("HHL", "HHL"),
+            ("HLH", "HHH"),
+            ("HLL", "HLL"),
+            ("HLLH", "HHHH"),
+            ("HL", "HL"),
+        ]
+        t = ostia(S, ["H", "L"], ["H", "L"])
+
+        transitions = {
+            ("", "H", "H", "H"),
+            ("H", "H", "H", ""),
+            ("H", "L", "", "HL"),
+            ("HL", "H", "HH", ""),
+            ("HL", "L", "", "HLL"),
+            ("HLL", "H", "HHH", ""),
+            ("", "L", "L", ""),
+        }
+        stout = {"": "", "H": "", "HL": "L", "HLL": "LL"}
+
+        self.assertTrue(set(t.E) == transitions)
+        self.assertTrue(stout == t.stout)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+\end{lstlisting}
