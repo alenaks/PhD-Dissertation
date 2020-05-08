@@ -1,8 +1,8 @@
 The availability of tools greatly impacts the future of ideas.
-Charles Baggage was the first to conceptualize the design of a computer in 1837, however, he could not implement it because the required funding and technologies needed for the production of his \emph{Analytical Engine} were not yet available.
+Charles Babbage was the first to conceptualize the design of a computer in 1837, however, he could not implement it because the required funding and technologies needed for the production of his \emph{Analytical Engine} were not yet available.
 Only in 1941, technological progress allowed for the first general-purpose computer named \emph{Z3} to be assembled.
-Even though the field of genetics originated in the early 18th century, it was the development of the photo techniques that allowed Rosalind Franklin to take a picture of the crystallized fibers in 1952 that ultimately led to the discovery of DNA sequencing.
-Frequently, the development of tools for a certain scientific area helps to make progress in that area.
+Furthermore, it was the development of the photo techniques that allowed Rosalind Franklin to take a picture of the crystallized fibers in 1952 that ultimately led to the discovery of DNA sequencing.
+Frequently, the development of tools for a certain scientific area helps to make progress.
 
 
 In my dissertation, I implement and experiment with some of the tools available for the formal classes of \emph{subregular languages and mappings} that recently proved themselves to be extremely useful for modeling natural language dependencies.
@@ -41,7 +41,7 @@ Additionally, the toolkit provides functions such as changing the polarity of th
 Apart from the interpretability of the grammar per se, subregular learning algorithms guarantee the interpretability of the way the grammar was discovered.
 In other words, it is always \emph{possible to look inside the algorithm}.
 Observing the behavior of the algorithm and studying its properties is necessary for understanding which configurations in the training data make it possible to find the pattern.
-If we are dealing with natural language data, transparent learning algorithms can help to explore the way humans learn languages.
+If we are dealing with natural language data, transparent learning algorithms might help to explore the way humans learn languages, assuming that this parallelism is possible.
 Interestingly, the discussed classes of subregular languages are learnable only from positive data.
 
 
@@ -119,8 +119,9 @@ To do so, I employ four subregular language classes that can theoretically expre
 Given this perspective, a learning dataset is a list of well-formed strings: it does not include words that violate the target well-formedness dependency.
 So, for example, for a target pattern of vowel harmony, the training dataset is a sample of harmonic words.
 Some of those subregular classes model local dependencies, while others encode long-distance dependencies.
-I also discuss the architectures of the learners originally introduced in \citep{Heinz-2010-SEL,JardineMcMullin2017,McMullinAksenovaDeSanto2019}.
-
+The conducted experiments confirmed the learning expectations for the artificial datasets, showing how different linguistic patterns are captured by subregular models.
+However, the performance of the learners on the natural language data was worse, and in some cases, a more powerful model was required to capture a pattern of lower complexity.
+Additionally, I outline the architectures of the learners originally introduced in \citep{Heinz-2010-SEL,JardineMcMullin2017,McMullinAksenovaDeSanto2019}.
 
 
 \textbf{Chapter 4.\ Learning mappings} is concerned with modeling transformations changing the underlying representations into the corresponding surface forms.
@@ -128,6 +129,7 @@ According to \cite{Chandlee2014}, many of phonological and morphological process
 Thus, I give an overview of a subsequential learner \citep{OncinaEtAl1993,DeLaHiguera2010}, and use it to extract generalizations from the datasets exhibiting linguistic dependencies similar to the ones listed above.
 In this case, patterns are represented as pairs of strings.
 So, for example, if a pair demonstrates a vowel harmony, then the first string shows the underlying or underspecified representation, while the vowels in the second word are fully specified and harmonic.
+The learner was able to model a variety of local and long-distance dependencies but struggled to capture a blocking effect.
 Additionally, in that chapter, I discuss other algorithms that learn mappings and can be employed for similar tasks in the future.
 
 
@@ -209,5 +211,14 @@ Figure \ref{chaptersstructure} gives an overview of the flow of this thesis, sta
 \label{chaptersstructure}
 \end{figure}
 
+This dissertation shows how learning experiments can be conducted using subregular learners from \emph{SigmaPie} package and discusses the results of those experiments.
+This package contains functionality that allows linguists to model linguistic phenomena and test those models, manually and automatically.
+	
+I discuss several subregular learners ($4$ language learners and $1$ transformation learner) and model $10$ linguistic patterns.
+Additionally, I conducted $3$ learning experiments using raw language data, therefore showing that its use is indeed possible.
+While the details of the experimental setup are at times simplistic, I intended to show an example of the pipeline itself.
+Every part of the setup -- learners, datasets, targeted phenomena, scoring, and others -- can and needs to be further improved.
 
 
+In linguistics, concepts such as natural classes and features allow to generalize dependencies, therefore, abstracting from the behavior of concrete segments to the behavior of their groups.
+In the future, having learning algorithms that take advantage of such notions can help to greatly improve their performance on natural language data, and to decrease the amount of data required.

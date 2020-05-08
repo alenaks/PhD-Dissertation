@@ -1,5 +1,5 @@
 Finite-state transducers are a convenient way to represent natural language processes: they rewrite strings according to the rules they encode.
-For example, \cite{RoarkSproat2007} claim that nearly all morphological processes can be modeled using FSTs.
+\cite{Koskenniemi1983} and \cite{Kiraz1996}, among the first ones, show that concatenative and non-concatenative morphological processes can be modeled using FSTs.
 \cite{Chandlee2014} in her dissertation shows that subregular functions are a good fit for phonology, and later extends the results to also include morphology \citep{Chandlee2017}.
 \cite{Heinz-Lai-2013-VHS} argue that subsequentiality is crucially important for long-distant phonological processes such as different types of harmonies.
 Subsequential transducers encode subsequential transformations: they read the input string symbol-by-symbol and output the translation, or a modified representation of that string.
@@ -555,7 +555,7 @@ Its daughter nodes $q_{HH}$ and $q_{HL}$ are now blue.
 
 \paragraph{Step V.}
 
-The state $q_{HH}$ can me merged with $q_\epsilon$.
+The state $q_{HH}$ can be merged with $q_\epsilon$.
 Indeed, the outgoing arcs reading and writing $H$ are present in both of these states, and the outgoing arc from $q_{HH}$ to $q_{HHL}$ is now re-directed and originates from $q_{\epsilon}$.
 All the incoming arcs into the state $q_{HH}$ are re-directed to target $q_\epsilon$.
 It created two outgoing from the state $q_\epsilon$ arrows reading $H$: $q_{\epsilon}\xrightarrow{\text{H:H}}q_{H}$ and $q_{\epsilon}\xrightarrow{\text{H:H}}q_{HHH}$, so $q_{HHH}$ needed to be folded into $q_{H}$.
@@ -760,8 +760,8 @@ The test sets containing a longer strings helped me to explore how well OSTIA ge
 Among the patterns that I targeted while exploring the capacities of the learner, there were some local patterns such as word-final devoicing, different types of long-distance harmonies, and some circumambient and unattested patterns.
 Below I explain the parameters that I considered when choosing the learning experiments, see the summary in figure \ref{typesofexperiments}.
 
-\paragraph{Long-distant}
-The difference between local and long-distant processes is one of the very important distinctions for phonology.
+\paragraph{Long-distance}
+The difference between local and long-distance processes is one of the very important distinctions for phonology.
 In the first case, the process is locally bounded, whereas, in the second one, it involves a potentially unbounded amount of the intervening material.
 As I show in chapter 3, this difference is crucial for strictly local models.
 They can evaluate local dependencies, but cannot capture long-distant ones.

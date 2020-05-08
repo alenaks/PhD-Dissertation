@@ -2,7 +2,7 @@ The last decade was very fruitful in the field of subregular research.
 New classes of subregular languages and mappings were uncovered for modeling natural language phenomena, and new learning algorithms were developed for these classes.
 The subregular approach has been successfully applied to phonotactics \citep{Heinz10ldp}, rewrite processes in phonology and morphology \citep{Chandlee2014}, and even syntactic constraints over tree structures \citep{Graf18CLS}.
 However, the rapid pace of the theoretical research has not been matched when it comes to engineering considerations.
-Many of the proposed learning algorithms have not been implemented before, and as a result, their performance on concrete data sets was not known.
+Many of the proposed learning algorithms have not been implemented, and as a result, their performance on concrete data sets was not known.
 
 In this final chapter, I summarize the impact of my dissertation and propose several different ideas and directions that can help to improve the balance between theory and practice in the subregular field.
 
@@ -35,7 +35,7 @@ It is available on PyPI and in \texttt{pip}.
 
 Apart from the software component, this dissertation also includes the experimental part discussed in chapters 3 and 4.
 Namely, I designed artificial datasets exhibiting different linguistic patterns, and extracted the underlying grammars using tools available in \emph{SigmaPie}.
-The conducted experiments were of two types: the first type targeted learning well-formedness conditions, while the second one explored generalizing the rules of rewrite processes.
+The experiments conducted were of two types: the first type targeted learning well-formedness conditions, while the second one explored generalizing the rules of rewrite processes.
 
 The datasets exhibiting the effect of well-formedness rules are lists of words, where those words never violate the encoded well-formedness condition.
 For example, if the condition is vowel harmony, the generated dataset included only the forms where all vowels agreed in the harmony feature.
@@ -46,7 +46,7 @@ As a toy example, assume that the inventory of vowels only contains $a$ and $o$,
 Valid SFs then include either only $o$ vowels or only $a$ vowels.
 The corresponding URs have all the non-initial vowels hidden (for example, represented as $A$), and only the initial vowel is specified as $a$ or $o$ to trigger the agreement.
 %\footnote{
-In the used encoding scheme, the number of representations of vowels in the URs depends on the number of features that are important for the behavior of the vowels regarding the harmony.
+In the encoding scheme used, the number of representations of vowels in the URs depends on the number of features that are important for the behavior of the vowels regarding the harmony.
 Namely, the number of vowel representations in URs is $2^f$, where $f$ is the number of such features.
 For example, in the mentioned toy pattern, no features were significant, and therefore there is only $2^0 = 1$ underspecified vowel.
 In some patterns, such as Turkish (see section 4.2.7), height plays a role in the behavior of the undergoers, and therefore there are $2^1 = 2$ underspecified vowels.
@@ -221,6 +221,11 @@ Finally, upon the availability of the $k$-MTSL learning algorithm, one could con
 Future work would help to fill those missing cells.
 
 
+In my dissertation, I mostly focused on \emph{how} artificial learning experiments can be set up and evaluated.
+The obtained results are preliminary, and require further research with other subregular learners and experimental datasets.
+Although I only explored the very tip of an iceberg, some of the results came out to be significant.
+For example, I was able to show that some patterns that are theoretically TSL cannot be learned from natural language data using a TSL learner (see Turkish harmony in Section 3.4.3), and that this problem does not arise with SP patterns (see Finnish harmony in Section 3.3.2).
+This project is just the beginning, and it opens up plenty of directions of future work and highlights the importance of further research regarding the applications of subregular models.
 
 
 
@@ -231,13 +236,13 @@ Future work would help to fill those missing cells.
 There are several future directions that this type of work can take.
 Mainly, they can be classified as the implementation of other proposed algorithms, the design of the novel learning algorithms targeting classes of languages and mappings that do not have learners yet, and conducting learning experiments and analyzing their outcomes.
 
-\paragraph{Implementation of other algorithms}
+\paragraph{Implementation of algorithms}
 In the literature, other learning algorithms are not yet implemented and therefore their practical applications are not explored.
 Among them, there are the learning algorithms ISLFLA and OSLFIA which extract two subclasses of subsequential mappings that are especially useful for local phonological processes \citep{ChandleeEtAl2014,ChandleeEtAl2015}.
 A learner for the class of Output $2$-TSL functions is available in \citep{BurnessMcMullin2019} and needs to be implemented as well.
 \cite{chandlee-etal-2019-learning} also proposes a transduction learner for feature-based representations learning long-distance dependencies.
 
-\paragraph{Design and improvement of algorithms}
+\paragraph{Design of new algorithms}
 Several subregular language classes capture long-distance linguistic dependencies in other ways as well.
 Among them, there are TSL languages where the tier projection function is sensitive to the local context (ITSL), a full class of MTSL languages, and several other classes such as MITSL, OTSL, IOTSL, and IBSP \citep{Graf17Phonology,DeSantoGraf19FG}.
 The current $2$-MTSL learner does not always induce the minimal number of tiers, and this can be a focus of improvement as well.
@@ -245,12 +250,39 @@ Some other ideas for the design of the learning algorithms are listed in section
 Additionally, the topic of adding more ``naturalness'' to the learning algorithms needs to be further explored, such as learning the feature systems of the language or finding a way to encode linguistic notions such as natural classes.
 
 
-\paragraph{Algorithm exploration via learning experiments}
+\paragraph{Improvement of algorithms}
+
+The performance of the algorithms can be improved by adding probabilities and linguistic notions such as features and natural classes.
+Probabilistic subregular modeling would allow to recognize harmony patterns even when the disharmonic words are present.
+Some theoretical research is already done in this direction, and it is the time for practice to follow \citep{HeinzRogers2010SPdist,Shibata-Heinz-2019-MLEFRDSL}.
+Alternatively, a more linguistic perspective on subregular modeling would suggest implementation of notions such as features and natural classes \citep{Strother-Garcia-HeinzEtAl-2016-UMTGICSP,chandlee-etal-2019-learning}.
+Indeed, this would allow to see the behavior of segments as \emph{groups} sharing some feature, instead of the current treatment of every segment independently.
+Interestingly, these two types of extensions -- features and probabilities -- can be combined \citep{Heinz-Koirala-2010-MLEFD,VuZehfrooshEtal2018-SRLUSM}.
+
+
+\paragraph{Combining the learners}
+
+Sometimes, a target language is in the intersection of different string-based subregular languages.
+For example, it can exhibit tone plateauing (SP) together with a long-distance harmony with blocking (TSL).
+To learn this patter, the SP and TSL learning algorithms can be ran in parallel, and the intersection of the obtained languages yields the target language \citep{Heinz10ldp,HeinzIdsardi13}.
+In case of learning complex rewrite rules, further research is required since it is not clear if transformations can be combined in a way that would preserve properties such as subsequentiality.%
+\footnote{Although this is an open question, research groups at Stony Brook University, University of Ottawa, and UC San Diego are currently working on it.}
+
+
+\paragraph{Algorithm exploration}
 
 Learning experiments show how the learner generalizes the pattern from real data.
 The shape of that data can be manipulated to explore how it affects the learning algorithm.
 For example, patterns exhibiting epenthesis, deletion, metathesis, and different types of dissimilations need to be added to the list of experiments as well.
 Studying the outcomes of learning experiments can help to improve the algorithms, and to better understand their scope.
+
+
+\paragraph{Explaining the impossible}
+
+As of the typologically unattested patterns that are beyond the capacities of the subregular learners, it is important to understand why it is the case.
+It might be due to the non-learnable nature of those patterns, as \cite{Lai15} suggests, or it can be because of the unlikelihood of such a system evolving \citep{Blevins2004}.
+Knowing \emph{what} patterns are not possible and \emph{why} helps to get closer to understanding the core nature of linguistic dependencies.
+
 
 \bigskip\medskip
 During the last decade, the field of subregular research grew in its popularity, with theoretical advancements showing that it could be used for modeling different phonological, morphological, and even syntactic patterns.

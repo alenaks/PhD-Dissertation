@@ -1,6 +1,6 @@
 Linguistic rules capture two types of generalizations: \textbf{well-formedness conditions}, i.e.\ the requirements for a word to be well-formed, and \textbf{transformations}, i.e.\ the rules of re-computing the given underlying representation into the corresponding surface form.
-The former ones restrict the word's form itself, such as ``two vowels should never be adjacent to each other'', while the latter ones describe the change, such as ``insert {[}j{]} in-between two adjacent vowels''.
-For example, transformations map the word \emph{dlinnosheee} `long-necked' (Russian) into its pronunciation \emph{dlinnosh[ejeje]}, and the well-formedness conditions ensure that the pronunciation \emph{dlinnosh[eee]} is not allowed since it contains two vowels adjacent to each other.
+Former restrict the word's form itself, such as ``two vowels should never be adjacent to each other'', while latter describe the change, such as ``insert {[}j{]} in-between two adjacent vowels''.
+For example, transformations map the Russian word that is orthographically represented as \emph{dlinnosheee} `long-necked' into its pronunciation \emph{dlinnosh[ejeje]}, and the well-formedness conditions ensure that the pronunciation \emph{dlinnosh[eee]} is not allowed since it contains two vowels adjacent to each other.
 
 
 \emph{Grammars} describe how to build well-formed words from the elements of the \emph{alphabet}.
@@ -78,14 +78,13 @@ But $q_2$ is not final, so strings cannot be accepted if they end up in that sta
 The machine then necessarily returns to the state $q_1$, therefore accepting \emph{stem-o-stem}.
 If more markers and stems follow, it takes the loop $q_1\rightarrow q_2\rightarrow q_1$ again.
 The complexity of the language recognized by an FSA is not more than \emph{regular}.
-Formally, regular languages are ones of the least complex formal languages; they are discussed further in this section.
 
 
 \emph{Formal languages} are potentially infinite collections of strings produced according to the rules of some \emph{grammar}.
 Different language classes can be recognized by different automata.
 These automata can also be referred to as \emph{abstract machines}, a more general name for theoretically possible computers encoding the rules of those languages.
 These machines, and therefore languages corresponding to them, can be ordered with respect to the complexity of the dependencies that they encode.
-The first version of such hierarchy was introduced in \cite{Chomsky1956} and is therefore known as \emph{the Chomsky hierarchy}.
+The first version of such a hierarchy was introduced in \cite{Chomsky1956} and is therefore known as \emph{the Chomsky hierarchy}.
 Nowadays, we usually use an extended version of the hierarchy that includes \emph{mildly context-sensitive} and \emph{finite} language classes \citep{JagerRogers12}, see Figure \ref{fig:chomhier}.
 
 
@@ -145,7 +144,7 @@ For example, a language $a^{n}$, where $n$ is a prime number, is recursively enu
 Below, there are \textbf{context-sensitive} languages that recognize non-linear%
 \footnote{The non-linearity refers to the growth of the number of $a$: every following number is \emph{much} larger than the previous.}
  patterns such as $a^{2n}$, where $n$ is greater than $0$.
-There are subclasses of context-sensitive languages which are a better for natural language syntax, such as \textbf{mildly context-sensitive} languages.
+There are subclasses of context-sensitive languages which are a better fit for natural language syntax, such as \textbf{mildly context-sensitive} languages.
 They are a good fit for syntactic dependencies as they handle cross-serial dependencies such as some cases of copying \citep{Joshi1985,Shieber1985,Kallmeyer2010}.
 The machine corresponding to \textbf{context-free} languages uses a stack of a potentially infinite size: in such a way, it recognizes patterns such as $a^{n}b^{n}$, \emph{``have as many $a$ as $b$''} \citep{HopcroftEtAl2006}.
 \textbf{Regular} languages are limited to the dependencies that can be recognized by an FSA \citep{HopcroftEtAl2006}.
@@ -154,9 +153,11 @@ Finally, at the very bottom of the hierarchy, one can see a class of \textbf{fin
 Classes that are more complex than mildly context-sensitive dependencies are rarely discussed in connection with natural languages: they are too powerful.
 
 Finite-state models correspond to regular languages, and were introduced in $1940$s by \citeauthor{McCullochPitts1943}.
-\cite{Chomsky1956}, however, theorized that this type of modeling does not seem to be suitable for natural languages.
-Despite that, there was a significant number of applications of finite-state machines to language-related tasks, such as text search \citep{Thompson1968}, machine translations \citep{OncinaEtAl1994,KnightAlOnaizan1998,BangaloreRiccardi2002}, speech recognition \citep{Caseiro2003,MohriPereiraRiley2002,MohriPereiraRiley2008}, semantic parsing \citep{JonesJohnsonGoldwater2011,JonesJohnsonGoldwater2012}, and others.
-The restrictiveness of finite-state models is frequently used to balance the robustness of neural networks; see, for example, a FST-based pronunciation learning model by \cite{Bruguier2017PronunciationLW}. 
+\cite{Chomsky1956}, however, theorized that this type of modeling does not seem to be suitable for natural languages, although in the following years his arguments were shown to be wrong.
+Despite that, there was a significant number of applications of finite-state machines to language-related tasks, such as text search \citep{Thompson1968}, machine translation \citep{OncinaEtAl1994,KnightAlOnaizan1998,BangaloreRiccardi2002}, speech recognition \citep{Caseiro2003,MohriPereiraRiley2002,MohriPereiraRiley2008}, semantic parsing \citep{JonesJohnsonGoldwater2011,JonesJohnsonGoldwater2012}, and others.
+The restrictiveness of finite-state models is frequently used to balance the robustness of neural networks.
+For example, a neural FST-based pronunciation learning model was designed by \cite{Bruguier2017PronunciationLW}.
+Additionally, \cite{RoarkEtAl2019} use a neural network guided by a regular grammar to assign pronunciations to words.
 At the same time, linguists and computer scientists started to employ regular languages and finite-state models as a tool to research the complexities of patterns in human languages, see \cite{Hulden2014} discussing the main milestones.
 
 
@@ -213,7 +214,7 @@ Some of the classes of the subregular hierarchy are presented below in Figure \r
 
 Figure \ref{subreghier} shows some of the subregular classes, namely the ones that are crucially important for modeling linguistic dependencies, and therefore extensively used in this dissertation.
 Namely, those are strictly local (SL), strictly piecewise (SP), tier-based strictly local (TSL) and multi-tier strictly local (MTSL) languages.
-The crucial difference between these languages lays in the types of dependencies they can capture, see Table \ref{subregclasses}.
+The crucial difference between these languages is in the types of dependencies they can capture, see Table \ref{subregclasses}.
 The combined functionality of those classes covers local dependencies and long-distance dependencies with or without a blocker.
 
 
@@ -256,11 +257,12 @@ For example, if the tier contains $a$ and $b$ and the string is $bccacbc$, the \
 TSL constraints such as $ba$ or $ab$ would rule out that string.
 \textbf{Multi-tier strictly local} (MTSL) grammars can have more than just a single tier, and, therefore, multiple tier images are evaluated with respect to multiple local grammars \citep{DeSantoGraf19FG}.
 \textbf{Strictly piecewise} (SP) grammars restrict certain \emph{subsequences} in well-formed strings of their languages \citep{Rogers-HeinzEtAl-2010-LPTSS,Heinz10ldp}.
+For example, if a subsequence $xx$ is prohibited, a string $xaaax$ is ruled out.
 In such a way, SL, SP, TSL and MTSL grammars model a wide range of local and long-distant processes \citep{Heinz11part1,HeinzRawal11,Heinz-Lai-2013-VHS,AksenovaEtAl16,ChandleeHeinz2018}.
 There are other subregular classes not listed here such as star free, interval-based strictly piecewise, input-output tier-based strictly local, piecewise testable, etc., but they are out of scope of this dissertation \citep{Lawson2003,Graf18NELS}.
 Additionally, I will only discuss grammars working with strings, but this approach is currently extended to other representations as well \citep{chandlee-etal-2019-learning,chandlee-jardine-2019-autosegmental}.
 
-A \emph{strong subregular hypothesis} suggests that a regular bound is too powerful for natural language phonology and phonotactics and that subregular languages are a better fit \citep{Heinz10ldp}.
+The \emph{strong subregular hypothesis} suggests that a regular bound is too powerful for natural language phonology and phonotactics and that subregular languages are a better fit \citep{Heinz10ldp}.
 %Four subregular classes -- SL, SP, TSL, and MTSL -- fit most of the natural language dependencies.
 %An SL grammar puts restrictions on $n$-local \emph{substrings}, therefore it captures only local dependencies.
 %An SP grammar cannot express local processes because it prohibits \emph{subsequences}, i.e.\ not necessarily adjacent sequences of elements.
@@ -272,8 +274,8 @@ In line with phonotactics, \cite{AksenovaEtAl16} shows that subregular languages
 The well-formedness conditions imposed on languages of generalized and monomorphemic quantifiers are also subregular.
 There are likewise applications of subregular grammars to syntax  \citep{Graf17Rutgerstalk,DeSantoGrafDrury2017,VuEtAl19SCiL}.
 
-Further in this section, I focus on SL, SP, TSL and MTSL languages and grammars, and provide linguistically-motivated examples of those.
-Additionally, I also define those classes mathematically and describe the corresponding classes of finite-state automata.
+In the rest of the chapter, I focus on SL, SP, TSL and MTSL languages and grammars, and provide linguistically-motivated examples of those.
+Additionally, I define these classes mathematically and describe the corresponding classes of finite-state automata.
 Later, in chapter 3, I will model those and some other dependencies, and show how their subregular grammars can be learned from real data.
 Table \ref{fig:subrepattenslfg} summarizes patterns that are discussed further and subregular classes to which they belong.
 
@@ -315,7 +317,8 @@ In what follows, the SL languages are demonstrated through two local processes h
 Additionally, I show the interaction between these two patterns.
 
 \paragraph{Russian obstruent assimilation and word-final devoicing}
-The examples (1-2) below show that the consonant of the preposition \emph{iz} `from' agrees in voicing with the obstruent of the following word.
+The examples (1-2) below show that the consonant of the preposition \emph{iz} `from' agrees in voicing with the obstruent of the following word.%
+\footnote{I do not discuss exceptions to this rule, such as the well-formedness of the cluster [sv].}
 
 \medskip
 \begin{tabular}{lll}
@@ -404,7 +407,7 @@ In this case, $\Sigma$ includes all Russian phonemes.
 Finally, every grammar defines its \emph{locality}, namely, the size of the longest string prohibited by that grammar; it is usually referred to as $k$ \citep{McNaughtonPapert1971,RogersPullum2011}.
 In the case of the SL grammar capturing Russian well-formedness conditions, all the prohibited strings are of length $2$ ($k=2$); such substrings are also called \emph{bigrams} or \emph{factors}.
 The Russian SL grammar is then strictly $2$-local, or $2$-SL.
-These three components -- the alphabet $\Sigma$, the set of restriction $R$, and the locality window $k$ -- define SL grammars, see Grammar \ref{slwfdocass}.
+These three components -- the alphabet $\Sigma$, the set of restriction $R$, and the locality window $k$ -- define SL grammars, see Grammar \ref{slwfdocass55}.
 
 {
 \renewcommand{\tablename}{Grammar}
@@ -417,12 +420,14 @@ These three components -- the alphabet $\Sigma$, the set of restriction $R$, and
 \textit{$k$ =}      & $2$          
 \end{tabular}
 \caption{$2$-SL grammar for Russian obstruent voicing assimilation and word-final devoicing.}
-\label{slwfdocass}
+\label{slwfdocass55}
 \end{center}
 \end{table}
 }
 
-Indeed, SL models are useful in modeling the well-formedness conditions arising from word-final devoicing, intervocalic voicing, consonant cluster assimilation, and other local processes.
+SL grammars disallow the appearance of the banned clusters such as $gs$ or $zk$, however, they do not induce the change of the ill-formed segments.
+The perspective of changing one form into another is examined in the Section 2.2 discussing modeling transformations.
+SL models are useful in modeling the well-formedness conditions arising from word-final devoicing, intervocalic voicing, consonant cluster assimilation, and other local processes.
 However, SL models cannot model long-distance dependencies.
 
 \paragraph{Tuareg sibilant harmony}
@@ -606,7 +611,7 @@ Similarly, in (18), both sibilants are non-anterior, but the voicing spreading i
 In Imdlawn Tashlhiyt, voiceless obstruents are \emph{blockers} for the voicing harmony, and this prevents SP grammars from being able to model the generalization.
 The rules of the harmony are the same as before, therefore all restrictions discussed earlier in Grammar \ref{tuaregsthfg} are still valid.
 However, there is no way to express a blocking effect in an SP grammar.
-An SP restriction is a restriction of the precedence of one segment by another, and therefore the presence of the bigram $sz$ is necessary to rule out disharmonic words such as \emph{saz:twa}.
+An SP restriction is a restriction on the precedence of one segment by another, and therefore the presence of the bigram $sz$ is necessary to rule out disharmonic words such as \emph{saz:twa}.
 But the same restriction will necessarily rule out grammatical words such as \emph{sm\textchi azaj}: it will simply ``miss'' the blocker, see Figure \ref{imdlawnbadsp}.
 
 
@@ -628,6 +633,12 @@ But the same restriction will necessarily rule out grammatical words such as \em
 \label{imdlawnbadsp}
 \end{figure}
 
+Increasing the size of the substrings to $3$ will not solve the problem with the blocking effect either.
+An SP grammar that finds the word \emph{sm\textchi azaj} correct will inevitably accept all subsequences of that word.
+As a result, it would incorrectly predict the well-formedness of the word \emph{smzaj}, where $s$ and $z$ disagree in voicing without the presence of a blocker.
+
+
+
 \paragraph{Unbounded tone plateauing}
 The ability of SP grammars to see substructures independently of other elements of the string gives them the power to encode \emph{unbounded tone plateauing} (UTP) attested in Luganda (Niger-Congo).
 In that language, low tones are realized as high if they are surrounded by high tones \citep{HymanKatamba2010}.
@@ -641,7 +652,7 @@ Accented vowels indicate high tones, and other vowels are low.
 \end{tabular}
 \medskip
 
-Using letters $H$ and $L$ to indicate high and low tones, we can express the generalization as ``never have one or more L in-between two H''.
+Using the letters $H$ and $L$ to indicate high and low tones, we can express the generalization as ``never have one or more L in-between two H''.
 This allows for strings such as \emph{HHL} and \emph{LLLHHHL}, but prohibits ones such as \emph{HHLLLHH}.
 Due to the long-distant nature of SP grammars, a $3$-local SP grammar can capture UTP by ruling out words that contain a subsequence $HLH$, see Figure \ref{imdlawnbadsp}.
 
@@ -767,7 +778,7 @@ I demonstrate the capacities of TSL grammars using the examples of vowel harmony
 
 \paragraph{Karaj\'a vowel harmony}
 
-Consider a vowel harmony in Karaj\'a (Macro-J\^e), where a tense vowel spreads the advanced tongue root (ATR) feature leftwards.
+Consider vowel harmony in Karaj\'a (Macro-J\^e), where a tense vowel spreads the advanced tongue root (ATR) feature leftwards.
 It makes it impossible to have a lax vowel followed by a tense one.
 This spreading can be blocked by intervening nasalized vowels; they are opaque for this harmony \citep{Ribeiro2002}.
 
@@ -803,15 +814,14 @@ The presence of the nasalized vowels on the tier allows for sequences such as \t
 Indeed, in such cases, the lax vowel \textepsilon~ and the tense  $e$ are not tier adjacent because of the intervening \~\textschwa.
 This makes TSL grammars a good fit for many harmonic patterns, even if they exhibit blocking effects.
 
-
 {
 \renewcommand{\tablename}{Grammar}
 \begin{table}[h!]
 \begin{center}
 \begin{tabular}{rl}
 \textit{TSL grammar}  & Karaj\'a vowel harmony in ATR \\
-\textit{$\Sigma$ =}      &  \{\textepsilon, \~o, \~\textschwa, o, e, u, \textopeno, a $\dots$ b, \texthtd, d, r $\dots$\} \\
-\textit{$T$ =}      &  \{\textepsilon, \~o, \~\textschwa, o, e, u, \textopeno, a $\dots$\}  \\
+\textit{$\Sigma$ =}      &  \{\textepsilon, \~o, \~\textschwa, o, e, u, \textopeno, a, \~\textschwa, \~a, \~o $\dots$ b, \texthtd, d, r $\dots$\} \\
+\textit{$T$ =}      &  \{\textepsilon, \~o, \~\textschwa, o, e, u, \textopeno, a, \~\textschwa, \~a, \~o $\dots$\}  \\
 \textit{$R$ =} & $\langle$\textepsilon e, \textepsilon o,  \textopeno o, \textopeno u, \textepsilon u $\dots\rangle$  \\
 \textit{$k$ =}      & $2$          
 \end{tabular}
@@ -910,7 +920,7 @@ The word \emph{bu\texthtd\textepsilon} is well-formed, since the tense vowel is 
 In \emph{r\textepsilon b\~\textschwa re}, there is a lax vowel followed by a tense one, but there is a blocker \~\textschwa~ in-between them, and its presence on the tier breaks the locality between \textepsilon~ and $e$ therefore allowing such a configuration.
 
 \paragraph{Buryat vowel harmony}
-Now, let us consider a vowel harmony in Buryat (Mongolian) that spreads both ATR and rounding features.
+Now, let us consider a type of vowel harmony in Buryat (Mongolian) that spreads both ATR and rounding features.
 All vowels within a word must agree in ATR.
 Consecutive non-high vowels agree in rounding unless there is an intervening high vowel that blocks this assimilation \citep{Poppe1960}.
 The set of transparent items is the same for both agreements: it includes /i/ and all consonants  \citep{HulstSmith87,Skribnik2003,Svantesson2005}.
@@ -1158,7 +1168,7 @@ Imdlawn Tashlhiyt sibilant harmony exhibits a blocking effect for only one featu
 In this subsection, I show that this pattern is MTSL.
 
 \paragraph{Imdlawn Tashlhiyt}
-Consider a regressive sibilant harmony in Imdlawn Tashlhiyt discussed earlier in 2.1.4.
+Consider the regressive sibilant harmony in Imdlawn Tashlhiyt discussed earlier in 2.1.4.
 Sibilants in that language agree in voicing and anteriority.
 For example, in \emph{zbruz:a} `\textsc{caus}-crumble', both sibilants are voiced and anterior, and in \emph{sas:twa} `\textsc{caus}-settle', they are voiceless and anterior, in \emph{\textesh fia\textesh r} `\textsc{caus}-be.full.of.straw', they are voiceless and non-anterior.
 However, while the anteriority harmony cannot be blocked by anything, the voicing harmony can be blocked by intervening voiceless obstruents such as \textchi, $k$ or $q$, resulting in the well-formedness of words such as \emph{sm\textesh azaj} `\textsc{caus}-loathe.each.other'.
@@ -1234,7 +1244,7 @@ Figure \ref{fig:imdlwnpicture} visualizes the discussed examples.
 \draw[dotted] (-0.75,0.5) to (4.5,0.5);
 \node at (4,0.65) {{\tiny anteriority}};
 \draw[dotted] (-0.75,-0.5) to (4.5,-0.5);
-\node at (4,-0.35) {{\tiny voicing}};
+\node at (4,-0.65) {{\tiny voicing}};
 \end{tikzpicture}
 %
 \hspace{3em}
@@ -1270,7 +1280,7 @@ Figure \ref{fig:imdlwnpicture} visualizes the discussed examples.
 \draw[dotted] (-0.75,0.5) to (4.5,0.5);
 \node at (4,0.65) {{\tiny anteriority}};
 \draw[dotted] (-0.75,-0.5) to (4.5,-0.5);
-\node at (4,-0.35) {{\tiny voicing}};
+\node at (4,-0.65) {{\tiny voicing}};
 \draw [dashed, red] (0.3,0.77) -- (2.7,0.77) -- (2.7,1.2) -- (0.3,1.2) -- (0.3,0.77);
 \end{tikzpicture}
 
@@ -1310,7 +1320,7 @@ Figure \ref{fig:imdlwnpicture} visualizes the discussed examples.
 \draw[dotted] (-0.75,0.5) to (5,0.5);
 \node at (4.5,0.65) {{\tiny anteriority}};
 \draw[dotted] (-0.75,-0.5) to (5,-0.5);
-\node at (4.5,-0.35) {{\tiny voicing}};
+\node at (4.5,-0.65) {{\tiny voicing}};
 \end{tikzpicture}
 %
 \hspace{3em}
@@ -1349,7 +1359,7 @@ Figure \ref{fig:imdlwnpicture} visualizes the discussed examples.
 \draw[dotted] (-0.75,0.5) to (5,0.5);
 \node at (4.5,0.65) {{\tiny anteriority}};
 \draw[dotted] (-0.75,-0.5) to (5,-0.5);
-\node at (4.5,-0.35) {{\tiny voicing}};
+\node at (4.5,-0.65) {{\tiny voicing}};
 \draw [dashed, red] (0.3,-0.77) -- (1.7,-0.77) -- (1.7,-1.2) -- (0.3,-1.2) -- (0.3,-0.77);
 \end{tikzpicture}
 \caption{Evaluation of strings \emph{zbruz:a}, \emph{\textyogh bruz:a}, \emph{sm\textesh azaj} and \emph{zm\textesh azaj} by a MTSL grammar capturing Imdlawn Tashlhiyt sibilant harmony in voicing and anteriority.}
@@ -1398,10 +1408,10 @@ In such a way, these subregular grammars can capture most of the dependencies im
 Some known natural language patterns, however, require powers of different subregular language classes.
 Among them, there is a pattern of Sanskrit /n/-retroflexion and Yaka harmony triggered by local conditions \citep{Walker2000,McMullin2016,Karakas2020}.
 IO-TSL and IBSP subregular language classes can models those cases \citep{Graf17Phonology,Graf18NELS}.
-Interestingly, none of the subregular language classes mentioned above can express such theoretically possible but unattested patterns as first-last harmony, where the first vowel of the word needs to harmonize with the last one \citep{Avcu2017Experiment}.
+Interestingly, none of the subregular language classes mentioned above can express such theoretically possible but unattested patterns as first-last harmony, where the first vowel of the word needs to harmonize with the last one \citep{Lai15,Avcu2017Experiment}.
 
 
-Further in chapter 3 of this dissertation, I discuss several subregular patterns and show how the corresponding grammars can be learned from the real data.
+Later, in chapter 3 of this dissertation, I discuss several subregular patterns and show how the corresponding grammars can be learned from the real data.
 
 
 
@@ -1611,7 +1621,7 @@ The translation of \emph{PNBNBNB} is \emph{PNBNBNP}, that corresponds to correct
 \cite{Chandlee2014}, and later \cite{ChandleeHeinz2018} show that the majority of phonological processes can be modeled in similar ways.
 \cite{Chandlee2017} later extends these results to morphology and models different types of affixation, word boundary processes and some types of reduplication.
 Other patterns that are shown to be subregular include metathesis, epenthesis, flapping, deletion, harmonies, and many others \citep{Chandlee2014}.
-Even some of the suprasegmental processes, such as stress, seem to exhibit subregular properties \citep{RogersPres}.
+Even some suprasegmental processes, such as stress, seem to exhibit subregular properties \citep{RogersPres}.
 For a survey of vowel harmonies and their computational complexities, see \citep{GainorLai12}.
 However, some processes, such as reduplication, are not subregular \citep{DolatianHeinz2018}.
 
@@ -1624,7 +1634,8 @@ They allow to detect and explain typological gaps, such as the absence of first-
 
 Although subsequential mappings fit a large portion of natural language patterns, there are phonological processes that are not subsequential.
 For example, bidirectional feature spreadings cannot be captured by a subsequential machine because the latter ones can read a string either left-to-right or right-to-left: it cannot pass the value in \emph{both} directions.
-A transducer applying the rules of UTP to the underlying tonal representations is not subsequential either (see Sections \ref{SPldrestrictions} and 4.1.3): for a sequence of low tones to become high, it needs triggers on both sides.
+Even though this pattern intuitively seems to be pretty simple, two runs of a transducer are required to capture it \citep{Heinz-Lai-2013-VHS}.
+As another example, a transducer applying the rules of UTP to the underlying tonal representations is not subsequential either (see Sections \ref{SPldrestrictions} and 4.1.3): for a sequence of low tones to become high, it needs triggers on both sides.
 Such mappings are still regular, namely, weakly deterministic and circumambient \citep{Heinz-Lai-2013-VHS,Jardine2016,LamontEtAl2019}.
 However, I will focus on a class of subsequential mapping since it subsumes a large portion of attested phonological processes.
 
@@ -1788,7 +1799,7 @@ are changed to $b$ since their context in the input string is the same as specif
 If two input strings $u_1$ and $u_2$ share the same $k-1$-local suffix, their set of tails is identical as well.
 
 \[
-	suff^{k-1}(u_1) = suff^{k-1}(u_2) \Rightarrow~ tails(u_1) = tails(u_2)
+	\textrm{\emph{suff}}^{k-1}(u_1) = \textrm{\emph{suff}}^{k-1}(u_2) \Rightarrow~ tails(u_1) = tails(u_2)
 \]
 
 If the mapping $M$ is indeed ISL, the set of tails is the same for all strings ending with the same $k-1$ local prefix.
@@ -2186,10 +2197,10 @@ This allows one to model local and long-distance processes, such as word-final d
 
 It should be noted that some attested phonological processes are not subsequential.
 Among them, there are circumambient pattern of unbounded tonal plateauing and reduplication requiring the power of two-way FSTs \citep{Jardine2016,DolatianHeinz2018}.
-Those patterns, however, are out of the scope of this dissertation.
+Those patterns, however, are beyond the scope of this dissertation.
 
 
-In Chapter 4, I discuss results of the tool-assisted learning experiments targeting various phonological processes such as tone plateauing, local processes, and different types of harmony systems with and without blockers.
+In Chapter 4, I discuss results of tool-assisted learning experiments targeting various phonological processes such as tone plateauing, local processes, and different types of harmony systems with and without blockers.
 
 
 
@@ -2205,11 +2216,11 @@ In this section, I discuss the possibility of building those models \emph{automa
 It not only allows the researchers to avoid the burden of manual grammar construction, but also gives us insights into the mechanisms helping to discover those patters.
 
 
-The \emph{grammatical inference} is a sub-field of machine learning 
+\emph{Grammatical inference} is a sub-field of machine learning 
 that is concerned with the extraction of grammars from data.
-As Colin de la Higuera formulates in his book ``Grammatical Inference'' (\citeyear{DeLaHiguera2010}), this field submerged at the intersection of linguistics, inductive analysis, and pattern recognition.
+As Colin de la Higuera formulates in his book ``Grammatical Inference'' (\citeyear{DeLaHiguera2010}), this field lies at the intersection of linguistics, inductive analysis, and pattern recognition.
 \emph{Linguistics}, and computational linguistics, in particular, brings the core idea of the existence of a \emph{formal grammar}, or a set of rules defining a \emph{language}.
-A \emph{language learning} can then be viewed as a process of discovering a language's grammar by the learner.
+\emph{Language learning} can then be viewed as a process of discovering a language's grammar by the learner.
 The field of \emph{inductive inference} aims at a problem of inferring the underlying grammar that consistently predicts what is grammatical and what is not after observing a set of elements of the language, where those elements can be strings, trees, or other structured objects.
 Finally, \emph{pattern recognition} describes the best model and its properties that would explain the data; it \emph{analyzes} the pattern.
 
@@ -2242,22 +2253,12 @@ If instead a mapping needs to be learned, grammatical inference algorithms requi
 
 The learning algorithms for SL, SP, TSL and MTSL languages, and also the algorithm inferring subsequential mappings, will be discussed in details in Chapters 3 and 4.
 These algorithms share several common properties, namely, they all require only positive data to find the grammar, they are fully interpretable, and work in polynomial time and data.
-Indeed, \emph{learning only from the positive data} is the desired characteristic, since human learners do not have access to the information of what is not possible in their languages \citep{Chomsky1986}.
+Indeed, \emph{learning only from the positive data} is the desired characteristic, since human learners do not have access to what is not possible in their languages \citep{Chomsky1986}.
 Only some of the subregular languages have this property: the full class of regular languages cannot be learned from positive data.
 \emph{Interpretability} of an algorithm means that both the learning process and the outcome are transparent: it is possible to trace how the learner came to a certain conclusion, and explain the obtained results.
 These learners extract grammars in \emph{polynomial time}, so they can be computed in practice.
 (The running time of polynomial algorithms is $n^c$, where $n$ is the size of the training sample, and $c$ is some constant \citep{Sipser2013}.)
 Finally, \emph{learning in the limit} guarantees that after a finite number of errors, the learner will start making only correct predictions \citep{Gold1967}. 
-
-
-There were several successful applications of grammatical inference algorithms in the previous decades.
-For example, Alexander Clark won the Tenjinno competition in 2006 by using a modified version of OSTIA, a subsequential learner discussed further in Chapter 4 \citep{OncinaEtAl1993,Clark2006}.
-Also, see a paper by \cite{Chandlee-FuEtAl-2012-IGIRP} discussing the integration of FSA-based grammatical inference techniques into robotic planning.
-
-
-However, the subregular learners are \emph{structural} and not probabilistic, and therefore frequently, the absence of some particular configuration in the training sample results in the algorithm failing to learn simple patterns.
-For instance, \cite{GildeaJurafsky1996} show that a corpus of English pronunciations is not enough for OSTIA to generalize a rule of English flapping.
-
 
 As a part of my dissertation, I implemented the \emph{SigmaPie} package \href{https://pypi.org/project/SigmaPie/}{\faCube} for working with subregular languages and mappings.
 It provides learners for SL, TSL, MTSL, SP languages and subsequential mappings \citep{sigmapie}.
@@ -2265,4 +2266,31 @@ In Chapter 3, I explore how well those subregular learners extract \emph{well-fo
 The training sample for those experiments is a collection of words well-formed according to one of those generalizations.
 Later in Chapter 4, I explore modeling of \emph{processes} similar to the ones listed above.
 In this case, the training sample contains pairs of underlying representations and the corresponding surface forms.
-In my thesis, I model of processes and well-formedness conditions using tools implemented as a part of \emph{SigmaPie}.
+In such a way, I model processes and well-formedness conditions using tools implemented as a part of \emph{SigmaPie}.
+
+
+\section{Aspects of practical applications}
+\label{aspects}
+
+
+There were several successful applications of grammatical inference algorithms in the previous decades.
+For example, Alexander Clark won the Tenjinno competition in 2006 by using a modified version of OSTIA, a subsequential learner discussed further in Chapter 4 \citep{OncinaEtAl1993,Clark2006}.
+Also, \cite{Chandlee-FuEtAl-2012-IGIRP} explore the integration of FSA-based grammatical inference techniques into robotic planning.
+
+
+However, the subregular learners are \emph{structural} and not probabilistic, and therefore frequently, the absence of some particular configuration in the training sample results in the algorithm failing to learn simple patterns.
+For instance, \cite{GildeaJurafsky1996} show that a corpus of English pronunciations is not enough for OSTIA to generalize a rule of English flapping.
+
+
+Indeed, the results of my Chapters 3 and 4 confirm that local restrictions and gaps in the natural language data obscure the extraction of some dependencies.
+This is why I mostly focused on learning \emph{sub-phenomena} instead of the complex interactions of local and long-distance dependencies found in natural language data.
+Alternatively, capturing different aspects of the data can be done by combining forces of different learners \citep{Heinz10ldp,HeinzIdsardi13}.
+
+
+There are other directions of research that could improve the performance of subregular learners.
+For example, implementing linguistic notions such as features can help to see the behavior of elements as groups instead of individual segments.
+The initial results on integrating features and natural classes are available in \citep{Strother-Garcia-HeinzEtAl-2016-UMTGICSP,chandlee-etal-2019-learning}.
+Some prior knowledge about the shape of the data can be encoded into the learners using methods that help to systematically exclude certain possible configurations from consideration, as it was shown by \cite{WellmanHenrion1993}.
+Also, adding probabilities to the learning algorithms allows abandoning the ``black and white'' structural approach incapable of modeling such probabilistic phenomena as harmony fading or the occurrence of disharmonic words.
+\cite{HeinzRogers2010SPdist,Shibata-Heinz-2019-MLEFRDSL} explore the probabilistic subregular models, and \cite{Heinz-Koirala-2010-MLEFD,VuZehfrooshEtal2018-SRLUSM} add together features and probabilities.
+

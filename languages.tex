@@ -1,7 +1,7 @@
-The previous chapter of this dissertation showed that subregular languages are a good fit for phonology and morphology.
+In the previous chapter, I showed that different phonological and morphological phenomena can be modeled as subregular languages.
 Indeed, local processes can be expressed with strictly local (SL) grammars and long-distance processes with strictly piecewise (SP) grammars.
 If a long-distance process uses blockers (e.g., opaque vowels in vowel harmony), then we use tier-based strictly local (TSL) grammars.
-If the language shows multiple long-distance processes, then we may also need  multiple tier-based strictly local (MTSL) grammars.
+If the language shows multiple long-distance processes, then we may also need  multi-tier strictly local (MTSL) grammars.
 This perspective on morphotactics and phonotactics also rules out typologically unattested patterns such as first-last harmony, majority harmony, or embedded circumfixation.
 
 In this chapter, I discuss algorithms which extract SL, SP, TSL and MTSL grammars from the data.
@@ -39,7 +39,7 @@ I then used those extracted grammars to \textbf{generate} samples of strings.%
 \footnote{The functionality of subregular generators comes from the \emph{SigmaPie} toolkit.}
 Finally, during the \textbf{evaluation} step, I computed the percentage of the strings from the automatically generated datasets that are well-formed with respect to the target grammars.
 
-Despite of what could be expected, I am \emph{not} testing the performance of the grammars on the held out parts of the training sample to detect the cases in which the learner ``overgeneralized'' the pattern.
+Regardless of what can be considered a general practice, I am \emph{not} testing the performance of the grammars on the held out parts of the training sample to detect the cases in which the learner ``overgeneralized'' the pattern.
 For example, some learning experiments resulted in the learner incorrectly converging on the empty negative grammar: such a learner simply assumed that "anything goes".
 Trivially, it will score $100$\% on all the held-out data.
 Only by looking at the predictions of the grammar it is possible to see if the learner generalized the language of the training sample.
@@ -107,7 +107,10 @@ The \textbf{First-Last Harmony Generator} generates a language with first-last h
 The language enforces agreement between the first and the last elements within the string.
 A list of agreeing elements needs to be specified (the default value is $\{a, o\}$), as well as the list of all other elements that can appear in the well-formed strings of this language ($\{a, o, x\}$ is the default).
 Strings such as \emph{axoxoxa} and \emph{ooaxo} are then grammatical, but \emph{axaxxo} or \emph{oaa} are not.
-Importantly, harmonic systems of this type are unattested in natural languages.
+Importantly, harmonic systems of this type are unattested in natural languages.%
+\footnote{First-last harmony can be unattested due to several different reasons.
+It might be impossible for such a pattern to naturally occur from language changes, or it can simply be not learnable by humans.
+\cite{Lai15} discusses the differences between the attested and unattested harmony patterns.}
 
 These generators were employed to produce data that was then fed to the SL, SP, TSL and MTSL learners.
 The next subsection provides the detailed description of the datasets used as training samples during the subregular experiments.
@@ -1581,7 +1584,7 @@ The majority of the Finnish letters, for the exception of $l$ and $n$, were unab
 
 \paragraph{Experiment 3: a single vowel harmony with blocking}
 
-Among the learners which i discussed so far, the TSL learner was the only one that was able to learn the rules of a single vowel harmony with blocking effect.
+Among the learners discussed so far, the TSL learner was the only one that was able to learn the rules of a single vowel harmony with blocking effect.
 In doing so, it achieved the accuracy of $100$\%.
 The learned grammar correctly excluded $x$ from the tier, and noticed that the blocker $f$ is crucial for this language.
 It prohibited disagreeing vowels adjacent on the tier; and if a blocker intervenes, the following vowel must not be $o$.
@@ -1905,7 +1908,7 @@ However, if there is more than a single set of items involved in different long-
 Therefore TSL learner failed on a challenge that included learning separate vowel and consonant harmonies: for those cases, one tier is not enough.
 
 
-\section{Multiple tier-based strictly local models}
+\section{Multi-tier strictly local models}
 
 Previous two sections explore two different perspectives on modeling long-distance dependencies.
 Strictly piecewise grammars prohibit subsequences elements of which can be \emph{arbitrarily far} from each other.
@@ -1913,7 +1916,7 @@ SP models thus handle cases of multiple long-distance dependencies; however, non
 Also, SP models can \emph{only} model long-distance dependencies: they cannot handle locally bounded patterns.
 TSL grammars can encode local patterns and also blocking effects; however, they are limited to a \emph{single} set of items involved in a long-distance dependency.
 Hence they cannot encode such cases as independent vowel and consonant harmonies within the same language.
-In this section, I explore the performance of multiple tier-based strictly local (MTSL) models: namely, models that employ several TSL grammars at the same time.
+In this section, I explore the performance of multi-tier strictly local (MTSL) models: namely, models that employ several TSL grammars at the same time.
 
 
 
@@ -1923,7 +1926,9 @@ In this section, I explore the performance of multiple tier-based strictly local
 The subregular class of MTSL grammars is a proper extension of TSL.
 However, the $k$TSLIA algorithm introduced earlier cannot be simply extended from a single tier to multiple ones since its initial assumption is that \emph{all members of $\Sigma$} belong to a tier alphabet: it implicitly assumes the existence of just a single tier.
 
-The MTSL learning algorithm \emph{MTSL$2$IA} proposed by \citet{McMullinAksenovaDeSanto2019} relies on the assumption that we can first detect all the prohibited $k$-grams, and then learn a tier for every one of them.
+Together with Kevin McMullin and Aniello De Santo, we developed the MTSL learning algorithm \emph{MTSL$2$IA} \citep{McMullinAksenovaDeSanto2019}.
+While there are several approaches to learning SL, SP, and TSL languages, MTSL$2$IA is the first published algorithm that tackles the problem of extracting MTSL grammars.
+It relies on the assumption that we can first detect all the prohibited $k$-grams, and then learn a tier for every one of them .
 Thus, we learn \emph{a tier for every negative bigram} of the MTSL grammar.
 Currently, this algorithm only works with $2$-local restrictions, and the work of extending it to $k$ is ongoing.
 
@@ -2489,7 +2494,7 @@ Therefore this learner could be more efficient for language-related tasks then t
 \label{interimsummarylanguages}
 
 In this chapter, I discussed possibilities of modeling natural language patterns using subregular methods.
-Namely, I explored the performance of strictly piecewise (SP), strictly local (SL), tier-based strictly local (TLS), and multiple tier-based strictly local (MTSL) learning algorithms using different datasets exhibiting natural language dependencies.
+Namely, I explored the performance of strictly piecewise (SP), strictly local (SL), tier-based strictly local (TLS), and multi-tier strictly local (MTSL) learning algorithms using different datasets exhibiting natural language dependencies.
 The experiments ranged from ones that were using artificially generated samples imitating linguistic patterns, to extracting grammars from raw language data.
 Artificial language learning shows if the modeling of those generalizations is possible \emph{conceptually}, whereas using raw data shows what is possible \emph{in practice}.
 
@@ -2589,6 +2594,32 @@ There are two important results of this work.
 First, every artificial language learning experiment that was predicted to be successful given some particular subregular model was, in fact, successful.
 It confirms that the implemented algorithms are indeed implemented correctly, and therefore can be reliably used in future.
 Second, the MTSL learner performed extremely well on raw language data: it learned German word-final devoicing and Finnish harmonic system from a raw data with an accuracy of $100$\%, and scored $95$\% on a challenge of learning Turkish harmony.
+
+However, any non-perfect score implies that the pattern was not acquired.
+Indeed, due to the non-probabilistic nature of the learners, results below $100$\% indicate the presence of ill-formed words generated by the learned grammar, showing that the learner did not converge.
+The learned grammars can do mistakes due to overgeneration or overfitting, and further research is needed to develop metrics similar to the precision and recall that would highlight these problems.
+The current metric only shows the overall performance of the model, without focusing on the issues of overgeneration and overfitting.
+
+For example, the SP learner scores $89$\% on the German dataset. 
+Given that the exemplified phenomenon of the word-final devoicing is not SP, this result is quite surprising.
+Looking into the learned grammar shows that the learner is \emph{overgenerating:} indeed, it observed voiced obstruents indirectly followed by the word-final marker, and thus assumed that such configuration is grammatical. 
+SP grammars do not differentiate between long-distance and local dependencies, and therefore after observing a word such as $\bow aba\eow$ it assumed that all its subsequences are also grammatical.
+Indeed, it results in allowing words such as $\bow ab\eow$ that violate the rule.
+The score is relatively high only due to a low probability for a word to end with a voiced obstruent: among $30$ German segments, only $5$ of them are voiced obstruents.
+This type of problem is caused by the overgeneration that arises in some of the learning experiments.
+
+Another issue -- \emph{overfitting} -- emerges when the model represents the training data but fails to generalize beyond it.
+Although further research is needed, the results suggest that it is indeed the case with the MTSL grammars capturing phenomena such as Turkish vowel harmony.
+Theoretically, we know that this pattern, as well as Finnish harmony, is TSL, i.e.\ requires just a single tier.
+However, the learned MTSL grammar extracts $266$ tiers, and it shows a high probability of the overfitting.
+Further work is needed to designing the appropriate metrics for subregular models evaluations that would take the distinction between overgeneration and overfitting into account.
+
+
+As discussed in Section 2.4, the learners can be greatly improved by introduction of linguistic notions such as natural classes and features.
+It can help to learn harmonies more efficiently: instead of considering segments individually, the feature-based representation helps to detect the common behavior of segments bearing a particular feature.
+Alternatively, a greater accuracy can be achieved by combining the learners together, as suggested in \cite{Heinz10ldp,HeinzIdsardi13}.
+
+
 
 This line of research needs to be further investigated, as many questions are yet to be answered.
 These models need to be challenged with more data exhibiting different linguistic dependencies.
