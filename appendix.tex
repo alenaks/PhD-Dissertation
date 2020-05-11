@@ -1,7 +1,7 @@
 \newpage
-\section*{Appendix: code of \emph{SigmaPie}}
+\chapter{Code of \emph{SigmaPie}}
 
-\subsection*{Grammar class}
+\section{Grammar class}
 
 \begin{lstlisting}[language=Python]
 """A module with the definition of the grammar class. Copyright (C) 2019  Alena
@@ -169,7 +169,7 @@ class L(object):
                 self.__polarity = "p"
 \end{lstlisting}
 
-\subsection*{Strictly local class}
+\section{Strictly local class}
 
 \begin{lstlisting}[language=Python]
 """A class of Strictly Local Grammars. Copyright (C) 2019  Alena Aksenova.
@@ -402,7 +402,7 @@ class SL(L):
 \end{lstlisting}
 
 
-\subsection*{Strictly piecewise class}
+\section{Strictly piecewise class}
 
 \begin{lstlisting}[language=Python]
 """A class of Strictly Piecewise Grammars. Copyright (C) 2019  Alena Aksenova.
@@ -623,7 +623,7 @@ class SP(L):
         self.grammar = list(set(self.grammar))
 \end{lstlisting}
 
-\subsection*{Tier-based strictly local class}
+\section{Tier-based strictly local class}
 
 \begin{lstlisting}[language=Python]
 """A class of Tier-based Strictly Local Grammars. Copyright (C) 2019  Alena
@@ -933,7 +933,7 @@ class TSL(SL):
             return not any(matches)
 \end{lstlisting}
 
-\subsection*{Multi-tier strictly local class}
+\section{Multi-tier strictly local class}
 
 \begin{lstlisting}[language=Python]
 """A class of Multiple Tier-based Strictly Local Grammars. Copyright (C) 2019
@@ -1401,7 +1401,7 @@ class MTSL(TSL):
             self.grammar[tier] = deepcopy(sl.grammar)
 \end{lstlisting}
 
-\subsection*{FSM class}
+\section{FSM class}
 
 \begin{lstlisting}[language=Python]
 """A class of Finite State Machines. Copyright (C) 2019  Alena Aksenova.
@@ -1598,7 +1598,7 @@ class FSM(object):
         return True
 \end{lstlisting}
 
-\subsection*{FSM family class}
+\section{FSM family class}
 
 \begin{lstlisting}[language=Python]
 """A class of Families of Finite State Machines. Copyright (C) 2019  Alena
@@ -1642,7 +1642,7 @@ class FSMFamily(object):
         return all([f.scan_sp(string) for f in self.family])
 \end{lstlisting}
 
-\subsection*{FST class}
+\section{FST class}
 
 \begin{lstlisting}[language=Python]
 """A class defining the Finite State Transducer. Copyright (C) 2019  Alena
@@ -1727,7 +1727,7 @@ class FST:
         return T
 \end{lstlisting}
 
-\subsection*{OSTIA}
+\section{OSTIA}
 
 \begin{lstlisting}[language=Python]
 """An implementation of the learning algorithm OSTIA. Copyright (C) 2019  Alena
@@ -2100,7 +2100,7 @@ def ostia_clean(T_orig):
     return T
 \end{lstlisting}
 
-\subsection*{Additional functions}
+\section{Additional functions}
 
 \begin{lstlisting}[language=Python]
 """Module with general helper functions for the subregular package. Copyright
@@ -2194,7 +2194,7 @@ def remove_from_prefix(w, pref):
 \end{lstlisting}
 
 
-\subsection*{Package initialization}
+\section{Package initialization}
 
 \begin{lstlisting}[language=Python]
 """
@@ -2231,9 +2231,9 @@ print(
 
 
 
-\section*{Appendix: unit tests}
+\chapter{Unit tests}
 
-\subsection*{Unit test for Grammar}
+\section{Unit test for Grammar}
 
 \begin{lstlisting}[language=Python]
 #!/bin/python3
@@ -2362,7 +2362,7 @@ if __name__ == "__main__":
 \end{lstlisting}
 
 
-\subsection*{Unit test for SL}
+\section{Unit test for SL}
 
 \begin{lstlisting}[language=Python]
 #!/bin/python3
@@ -2585,7 +2585,7 @@ if __name__ == "__main__":
 
 \end{lstlisting}
 
-\subsection*{Unit test for SP}
+\section{Unit test for SP}
 
 \begin{lstlisting}[language=Python]
 #!/bin/python3
@@ -2764,7 +2764,7 @@ if __name__ == "__main__":
 
 \end{lstlisting}
 
-\subsection*{Unit test for TSL}
+\section{Unit test for TSL}
 
 \begin{lstlisting}[language=Python]
 #!/bin/python3
@@ -3055,7 +3055,7 @@ if __name__ == "__main__":
 
 \end{lstlisting}
 
-\subsection*{Unit test for MTSL}
+\section{Unit test for MTSL}
 
 \begin{lstlisting}[language=Python]
 #!/bin/python3
@@ -3334,7 +3334,7 @@ if __name__ == "__main__":
 
 \end{lstlisting}
 
-\subsection*{Unit test for FSA}
+\section{Unit test for FSA}
 
 \begin{lstlisting}[language=Python]
 #!/bin/python3
@@ -3481,7 +3481,7 @@ if __name__ == "__main__":
 
 \end{lstlisting}
 
-\subsection*{Unit test for OSTIA}
+\section{Unit test for OSTIA}
 
 \begin{lstlisting}[language=Python]
 #!/bin/python3

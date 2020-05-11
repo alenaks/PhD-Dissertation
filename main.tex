@@ -14,6 +14,7 @@
 \usepackage{colortbl}
 \usepackage{bm} % bold math mode
 \usepackage{esvect} % arrows above text
+\usepackage[titletoc]{appendix}
 
 % DESIGN RELATED STUFF
 \usepackage{tikz} % automata, trees, etc.
@@ -143,15 +144,22 @@
 \input{abstract}
 \newpage
 
-%\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+\chapter*{Acknowledgements}
+\input{acknowledgements}
+\newpage
 
 
 \tableofcontents
 \newpage
 
+\cleardoublepage
+\addcontentsline{toc}{chapter}{\listfigurename}
 \listoffigures
 \newpage
 
+\cleardoublepage
+\addcontentsline{toc}{chapter}{\listtablename}
 \listoftables
 \newpage
 
@@ -177,11 +185,18 @@
 \chapter{Conclusion and future work}
 \input{conclusion}
 
-\appendix
-\input{appendix}
-
+{
 \footnotesize % 9pt font size
 \bibliographystyle{acl_natbib}
+\cleardoublepage
+\addcontentsline{toc}{chapter}{Bibliography}
 \bibliography{aksbib}
+}
+
+\begin{appendices}
+\input{appendix}
+\end{appendices}
+
+
 
 \end{document}
