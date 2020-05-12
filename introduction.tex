@@ -1,48 +1,55 @@
 The availability of tools greatly impacts the future of ideas.
 Charles Babbage was the first to conceptualize the design of a computer in 1837, however, he could not implement it because the required funding and technologies needed for the production of his \emph{Analytical Engine} were not yet available.
 Only in 1941, technological progress allowed for the first general-purpose computer named \emph{Z3} to be assembled.
-Furthermore, it was the development of the photo techniques that allowed Rosalind Franklin to take a picture of the crystallized fibers in 1952 that ultimately led to the discovery of DNA sequencing.
-Frequently, the development of tools for a certain scientific area helps to make progress.
+Furthermore, it was the development of the X-ray crystallography technique that allowed Rosalind Franklin to take a picture of the crystallized fibers in 1952 that ultimately led to the discovery of DNA sequencing.
+Frequently, the development of tools for a certain scientific area is an essential catalyst for progress.
 
 
-In my dissertation, I implement and experiment with some of the tools available for the formal classes of \emph{subregular languages and mappings} that recently proved themselves to be extremely useful for modeling natural language dependencies.
+In my dissertation, I implement and experiment with some of the algorithms available for the formal classes of \emph{subregular languages and mappings} that recently proved themselves to be extremely useful for modeling natural language dependencies.
 Namely, I discuss the results of the automatic extraction of subregular grammars from data exhibiting various linguistic patterns, such as word-final devoicing, harmony systems of different types, and others.
 The code behind the inference algorithms is available as a part of my package \emph{SigmaPie} \href{https://pypi.org/project/SigmaPie/}{\faCube} \citep{sigmapie}.
-This package is open source, available via \texttt{pip} and implemented in Python 3.
-\emph{SigmaPie} allows linguists and formal language theorists to assess possible applications of those tools and ideas in the areas of typology, cognitive linguistics, and natural language processing.
-This dissertation implements subregular learning algorithms and demonstrates their performance on various linguistic datasets.
-I focus exclusively on string representations, as it is a necessary step before extending such type of research to trees or graphs.
+This package is open source, implemented in Python 3, and available via \texttt{pip}.
+\emph{SigmaPie} allows linguists and formal language theorists to assess possible applications of subregular ideas in the areas of typology, cognitive linguistics, and natural language processing.
+This package is flexible and can be used to explore a variety of research questions.
+It provides researchers who are interested in subregular complexity and learning with a sandbox where they can play with new ideas in a hands-on fashion.
+
+This thesis is meant to be a starting point for scientists who wish to incorporate \emph{SigmaPie} into their research.
+It discusses the theoretical foundations of subregular linguistics and it shows how \emph{SigmaPie} can be used to experimentally test theoretical claims.
+Both the discussion and the experiments consider only string representations, rather than autosegmental or tree-based ones.
+That does not mean that the subregular view, or its implementation via \emph{SigmaPie}, cannot be extended to handle these richer types of structures.
+Strings provide an accessible starting point for subregular work, they are not its intended endpoint.
+Similarly, \emph{SigmaPie} is a sandbox rather than a finished product --- its active use in research will greatly shape \emph{SigmaPie} and push it in whatever direction turns out to be most fertile and productive.
 
 
-\section{Subregular grammars}
+\section{Subregular linguistics and learning}
 
 
 Formal tools help to generalize natural language patterns and study them independently of linguistic theories, therefore allowing researchers to focus on one of the core questions of linguistics: \emph{what is the complexity of natural language?}
 Although this question is not yet answered, we already know to some extent the complexity of the restrictions that phonotactics and morphotactics impose on the surface forms of their objects.
-We also came closer to understanding what types of changes are involved in phonological and morphological processes.
-Recently, researchers started to target areas of linguistics such as syntax and semantics, and we already see interesting updates from that research front as well.
+We have also come closer closer to understanding what types of changes are involved in phonological and morphological processes.
+\textbf{Formal language theory} provides a perspective on modeling natural language dependencies.
+Under this perspective, a formal language is a possibly infinite set of words satisfying some set of rules.
+\emph{Subregular languages} have weak generative capacity, and therefore cannot express some types of dependencies, but their power is enough for phonology and morphology.
 
 
-
-However, when machine learning techniques are applied to natural language data, all the knowledge we have about the types of language dependencies is usually ignored.
-It makes for a weird situation when people who study the core principles of natural language and people who model natural languages do not communicate.
-And even if they do, it is unclear how to incorporate this knowledge in modern machine learning systems.
-Neural networks that are widely employed nowadays in the field of natural language processing learn patterns in an uninterpretable fashion therefore not giving a way for the linguists to look inside those networks and understand \emph{how} and \emph{what exactly} was learned.
-On the contrary, \emph{subregular} learning algorithms (further referred to as ``subregular learners'') are fully transparent and interpretable.
-
-
-The \emph{SigmaPie} package implements subregular learners that efficiently extract grammars after observing a finite number of well-formed strings of the target language.
-This package also implements sample generators, scanners, and some other tools.
-The generation of a data sample of the required complexity is needed during the design of artificial learning experiments.
-Scanners and re-writers verify the well-formedness of strings regarding some grammar or modify the input according to a specified set of rules.
-Additionally, the toolkit provides functions such as changing the polarity of the grammar or removing uninformative elements from the grammar.
+The subregular perspective has a goal of identifying weak subclasses of languages and mappings that are sufficiently powerful for natural language dependencies.
+Subregular languages are a good git for phonotactics and morphotactics, while subregular mappings provide a convenient way to describe phonological and morphological phenomena.
+These languages and mappings are subclasses of finite-state automata and transducers that are sub-divided from regular languages since the 1970s \citep{McNaughtonPapert1971}.
+Although they are not novel for the field of formal language theory, they made their way to linguistics much later \citep{Heinz10ldp,Heinz11part1}.
+The subregular approach is a fruitful and promising research direction, see Section 1.2 and Background for formal definitions and further information.
 
 
-Apart from the interpretability of the grammar per se, subregular learning algorithms guarantee the interpretability of the way the grammar was discovered.
+However, in natural language processing (NLP), little attention is paid to the vast body of linguistic research on the types of dependencies that occur in language.
+Moreover, it is not even clear how to incorporate this linguistic knowledge into currently used NLP models.
+Neural networks, which are widely employed nowadays in NLP, learn patterns in an uninterpretable fashion; as a result they do not furnish a way for linguists to look inside those networks and understand \emph{how} and \emph{what exactly} was learned.
+On the contrary, \emph{subregular} learning algorithms (which I will call ``subregular learners'' from here on) are fully transparent and interpretable.
+
+
+Subregular learning algorithms guarantee the interpretability of the way the grammar was discovered, as well as the interpretability of the grammar per se.
 In other words, it is always \emph{possible to look inside the algorithm}.
-Observing the behavior of the algorithm and studying its properties is necessary for understanding which configurations in the training data make it possible to find the pattern.
-If we are dealing with natural language data, transparent learning algorithms might help to explore the way humans learn languages, assuming that this parallelism is possible.
-Interestingly, the discussed classes of subregular languages are learnable only from positive data.
+Observing the behavior of the algorithm and studying its properties is necessary for understanding which configurations in the training data help to discover the pattern.
+If we are dealing with natural language data, transparent learning algorithms might help to explore the way humans learn languages, to the extent that useful parallels can be drawn between the two.
+Interestingly, the discussed classes of subregular languages are learnable just from positive data, without any need for negative data.
 
 
 In the field of formal languages, theoretical achievements are not always followed by their practical applications.
@@ -53,16 +60,25 @@ Sometimes, as \cite{GildeaJurafsky1996} show in their paper, the grammatical inf
 The last few decades brought us a lot of new knowledge about the complexity of human language patterns, and the majority of this knowledge is still waiting to be incorporated into these algorithms.
 
 
+The \emph{SigmaPie} package implements subregular learners that efficiently extract grammars after observing a finite number of well-formed strings of the target language.
+This package also implements sample generators, scanners, and some other tools.
+The generation of a data sample of the required complexity is needed during the design of artificial learning experiments.
+Scanners and re-writers verify the well-formedness of strings regarding some grammar or modify the input according to a specified set of rules.
+Additionally, the toolkit provides functions such as changing the polarity of the grammar or removing uninformative elements from the grammar.
+The subregular perspective is transparent and interpretable, but so far it lacked tools that help to leverage this transparency.
+Such a toolkit would be especially useful to linguists working on modeling natural language dependencies.
+
+
 \section{Linguistic motivation behind the subregular approach}
 
 What is the minimum generative capacity of the grammar that is capable of encoding human language-like patterns?
 In other words, what types of dependencies must that grammar take into account?
-Answering these questions might give us a powerful insight into human cognition.
+Answering these questions might furnish powerful insights into human cognition.
 The first step must be uncovering what \emph{types} of patterns do human languages exhibit.
 
 
 To describe and generalize phenomena observed in natural languages, we need to build their computational or mathematical models.
-Formal languages provide a way to do it.
+Formal languages provide a way to do this.
 Their object can be any structured object formed from a finite collection of discrete elements, where those objects can be strings, trees, or graphs.
 In this thesis, however, I will only focus on string representations.
 
@@ -71,7 +87,10 @@ Subregular modeling provides two perspectives: modeling well-formedness conditio
 A \textbf{well-formedness condition} can be encoded as a language, or a potentially infinite collection of strings satisfying that condition.
 For example, in Russian, voiced obstruents become voiceless at the end of the word.
 It results in words such as \emph{lo[b]} being excluded from the collection of well-formed Russian strings, whereas their voiceless counterparts such as \emph{lo[p]} `forehead' are grammatical.
-When augmented with  a word-final marker \eow, the corresponding grammar rules out all cases when a voiced obstruent is followed by that marker: \emph{b\eow}, \emph{g\eow}, \emph{d\eow}, etc.
+Suppose that every word has a dedicated marker \eow~ at the end of the word.
+Then the ban against voiced obstruents at the end of the word can be encoded as a grammar that rules out all cases where a voiced obstruent is followed by that marker: \emph{b\eow}, \emph{g\eow}, \emph{d\eow}, etc.
+
+
 In contrast, a \textbf{transformation} can be formalized as a collection of pairs of strings, where those strings represent the states ``before'' and ``after'' the rule application.
 In other words, those pairs demonstrate the underlying representations and the corresponding surface forms.
 From this perspective, Russian word-final devoicing can be viewed as a collection of pairs, where the final obstruent of the first string can be either voiced or voiceless, but it is always voiceless in the second one: \emph{(lo[b], lo[p])} `forehead', \emph{(lu[g], lu[k])} `meadow', \emph{(lu[k], lu[k])} `onion', etc.
@@ -83,7 +102,7 @@ In the domain of string languages, \textbf{\emph{regular languages and mappings}
 The class of regular languages, however, can be further subdivided into a nested hierarchy of weaker \textbf{\emph{subregular}} languages.
 Closer research of phonological and morphological patterns shows that in fact, these patterns do not require the whole power of regular languages.
 Several subregular classes express well-formedness conditions imposed by phonotactics and morphotactics \citep{HeinzRawal11,AksenovaEtAl16,Heinz-2018-CNPG}.
-Subregular -- namely, \emph{subsequential} mappings describe a multitude of morphological and phonological processes \citep{Chandlee2017,ChandleeHeinz2018}.
+Subregular --- namely, \emph{subsequential} --- mappings describe a multitude of morphological and phonological processes \citep{Chandlee2017,ChandleeHeinz2018}.
 Subregular grammars found their applications even in the areas of syntax and semantics. \citep{DeSantoGrafDrury2017,GrafShafiei19SCiL,Graf19AC}.
 In this thesis, I focus on modeling phonological dependencies of different kinds.
 
@@ -96,45 +115,60 @@ The works cited above are all very recent.
 To help accelerate this currently growing direction of research, I implemented a package that provides the subregular functionality and explored \emph{practical} capabilities of those algorithms.
 
 
-\section{Structure of the dissertation}
+\section{Main insights and structure of the dissertation}
 
-Subregular learners capture different types of natural language dependencies.
-In my dissertation, I aimed to explore how well the theorems about the correctness of those learners carry over to real-world performance.
-To do so, I designed multiple artificial learning experiments and scored the subregular learners on datasets exhibiting patterns such as local assimilations, multiple long-distant harmonies of different types, some typologically unattested patterns, and others.
-The datasets ranged from artificial automatically generated samples to real-language datasets such as German, Finnish, and Turkish wordlists.
-While the artificially generated datasets explored if a pattern was learnable in general, the raw data showed what issues the learners have when faced with the raw natural language data.
-Every target pattern was approached from two perspectives: as a well-formedness condition on the surface forms, and as a transformational rule changing values of some elements.
+Different subregular learners capture different types of natural language dependencies.
+While these distinct learning algorithms all rest on a sound theoretical foundation, it is unknown how well the theorems about the correctness of those learners carry over to real-world performance.
+This thesis demonstrates how this open issue can be explored with the help of \emph{SigmaPie}.
+I design multiple artificial learning experiments and score the subregular learners on datasets exhibiting patterns such as local assimilations, multiple long-distant harmonies of different types, some typologically unattested patterns, and others.
+The datasets range from artificial automatically generated samples to real-language datasets such as German, Finnish, and Turkish wordlists.
+While the artificially generated datasets explore if a pattern is learnable in general, the raw data shows what issues the learners have when faced with the raw natural language data.
+Every target pattern is approached from two perspectives: as a well-formedness condition on the surface forms, and as a transformational rule changing values of some elements.
 
 
+\paragraph{Specific findings}
+I show that indeed, subregular learners perform as theoretically expected, and extract grammars of the corresponding complexity from generated datasets.
+It confirms that they can model different natural language dependencies, including but not limited to local dependencies, different long-distance harmonies, and even segmental patterns.
+Importantly, some of these learners were able to perform well on such complex tasks as learning of a long-distance dependency from raw data.
 
-While chapters 3 and 4 explore subregular modeling from a practical point of view, \textbf{Chapter 2.\ Background} gives a theoretical perspective on such languages and mappings.
-I demonstrate the modeling capacities of subregular grammars and transformations by capturing attested natural language patterns such as word-final devoicing, unbounded tone plateauing, and several different types of harmonies.
+\paragraph{Relevance for linguistics}
+Subregular languages and mappings indeed model a wide variety of natural language patterns.
+Subregular learning algorithms efficiently learn languages and mappings from positive data.
+Setting up the learning pipeline itself is not complicated, and I thoroughly discuss the way I did it in my thesis.
+Such \emph{SigmaPie}-based learning experiments provide a way to test ideas on artificial and natural language datasets.
+\medskip
+
+
+While chapters 3 and 4 explore subregular modeling from a practical point of view, \textbf{Chapter 2.\ Background} gives a theoretical perspective on subregular languages and mappings.
+I discuss the modeling capacities of subregular grammars and transformations by capturing attested natural language patterns such as word-final devoicing, unbounded tone plateauing, and several different types of harmonies.
 Namely, the reviewed formal classes are strictly local, strictly piecewise, tier-based strictly local, and multi-tier strictly local languages; and subsequential transformations.
 Additionally, in that chapter, I also discuss the problem of inferring grammars from data, and list the useful properties shared by the subregular learners.
 
 
 
 In \textbf{Chapter 3.\ Learning languages}, I target modeling well-formedness conditions.
-To do so, I employ four subregular language classes that can theoretically express the target generalizations such as attested and unattested harmony systems, and other local and long-distant generalizations.
-Given this perspective, a learning dataset is a list of well-formed strings: it does not include words that violate the target well-formedness dependency.
+Namely, I employ four subregular language classes that express generalizations, including local and long-distance processes such as attested and unattested harmony systems with and without blockers, word-final devoicing, and even suprasegmental patterns.
+A training sample is a list of well-formed strings that does not include words that violate the target generalization.
 So, for example, for a target pattern of vowel harmony, the training dataset is a sample of harmonic words.
-Some of those subregular classes model local dependencies, while others encode long-distance dependencies.
 The conducted experiments confirmed the learning expectations for the artificial datasets, showing how different linguistic patterns are captured by subregular models.
-However, the performance of the learners on the natural language data was worse, and in some cases, a more powerful model was required to capture a pattern of lower complexity.
-Additionally, I outline the architectures of the learners originally introduced in \citep{Heinz-2010-SEL,JardineMcMullin2017,McMullinAksenovaDeSanto2019}.
+However, the performance of the learners on raw natural language data was worse, and in some cases, a more powerful model was required to capture a pattern of lower complexity.
+In that chapter, I also outline the architectures of the learners originally introduced in \citep{Heinz-2010-SEL,JardineMcMullin2017,McMullinAksenovaDeSanto2019}.
 
 
 \textbf{Chapter 4.\ Learning mappings} is concerned with modeling transformations changing the underlying representations into the corresponding surface forms.
-According to \cite{Chandlee2014}, many of phonological and morphological processes belong to the class of subsequential mapping.
-Thus, I give an overview of a subsequential learner \citep{OncinaEtAl1993,DeLaHiguera2010}, and use it to extract generalizations from the datasets exhibiting linguistic dependencies similar to the ones listed above.
+According to \cite{Chandlee2014}, many of phonological and morphological dependencies belong to the class of subsequential mapping.
+Thus, I give an overview of a subsequential learner OSTIA \citep{OncinaEtAl1993,DeLaHiguera2010}, and use it to extract generalizations from datasets exhibiting different linguistic dependencies.
 In this case, patterns are represented as pairs of strings.
-So, for example, if a pair demonstrates a vowel harmony, then the first string shows the underlying or underspecified representation, while the vowels in the second word are fully specified and harmonic.
+So, for example, if a pair demonstrates a vowel harmony, then the first string shows the underlying, or underspecified, representation, while the vowels in the second word are fully specified and harmonic.
 The learner was able to model a variety of local and long-distance dependencies but struggled to capture a blocking effect.
-Additionally, in that chapter, I discuss other algorithms that learn mappings and can be employed for similar tasks in the future.
+Additionally, that chapter discusses other algorithms that learn mappings and can be employed for similar tasks in the future.
 
 
 Finally, \textbf{Chapter 5.\ Conclusion} summarizes the obtained results and proposes directions for future research.
-Figure \ref{chaptersstructure} gives an overview of the flow of this thesis, starting from the theory of modeling well-formedness conditions and transformations, and then followed by a practical part discussing the experimental setup and the executed learning experiments.
+Figure \ref{chaptersstructure} gives an overview of the flow of this thesis, starting from the theory of modeling well-formedness conditions and transformations, and then followed by a part discussing the applications and the accomplished learning experiments.
+The \emph{SigmaPie} package was used in the experiments reported in Chapters 3 and 4.
+Its code is available via Python package manager \texttt{pip} and is listed in Appendix A.
+The correctness of the code was assessed via a series of unit tests, provided in Appendix B.
 
 
 
@@ -202,8 +236,8 @@ Figure \ref{chaptersstructure} gives an overview of the flow of this thesis, sta
 \draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=0.44 ]  (539, 53.67) circle [x radius= 50.91, y radius= 21.21]   ;
 \draw (502,45) node [anchor=north west][inner sep=0.75pt]  [font=\large,color={rgb, 255:red, 0; green, 0; blue, 0 }  ,opacity=1 ] [align=left] {{\large {\fontfamily{pcr}\selectfont \textbf{theory}}}};
 % Text Node
-\draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=0.39 ]  (522.5, 484.67) circle [x radius= 67.18, y radius= 21.21]   ;
-\draw (474,474) node [anchor=north west][inner sep=0.75pt]  [font=\large,color={rgb, 255:red, 0; green, 0; blue, 0 }  ,opacity=1 ] [align=left] {\textbf{{\large {\fontfamily{pcr}\selectfont practice}}}};
+\draw  [fill={rgb, 255:red, 0; green, 0; blue, 0 }  ,fill opacity=0.39 ]  (529, 484.67) circle [x radius= 78.18, y radius= 21.21]   ;
+\draw (465,474) node [anchor=north west][inner sep=0.75pt]  [font=\large,color={rgb, 255:red, 0; green, 0; blue, 0 }  ,opacity=1 ] [align=left] {\textbf{{\large {\fontfamily{pcr}\selectfont application}}}};
 
 \end{tikzpicture}
 }
@@ -214,11 +248,3 @@ Figure \ref{chaptersstructure} gives an overview of the flow of this thesis, sta
 This dissertation shows how learning experiments can be conducted using subregular learners from \emph{SigmaPie} package and discusses the results of those experiments.
 This package contains functionality that allows linguists to model linguistic phenomena and test those models, manually and automatically.
 	
-I discuss several subregular learners ($4$ language learners and $1$ transformation learner) and model $10$ linguistic patterns.
-Additionally, I conducted $3$ learning experiments using raw language data, therefore showing that its use is indeed possible.
-While the details of the experimental setup are at times simplistic, I intended to show an example of the pipeline itself.
-Every part of the setup -- learners, datasets, targeted phenomena, scoring, and others -- can and needs to be further improved.
-
-
-In linguistics, concepts such as natural classes and features allow to generalize dependencies, therefore, abstracting from the behavior of concrete segments to the behavior of their groups.
-In the future, having learning algorithms that take advantage of such notions can help to greatly improve their performance on natural language data, and to decrease the amount of data required.
