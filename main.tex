@@ -133,7 +133,7 @@
 
 \pagenumbering{roman}
 
-
+% -------------------------------------------------------
 
 %% TITLE PAGES
 \input{titlepage}
@@ -163,7 +163,7 @@
 \listoftables
 \newpage
 
-
+% -------------------------------------------------------
 
 \pagenumbering{arabic}
 \chapter{Introduction}
@@ -175,13 +175,15 @@
 
 %\setcounter{chapter}{2}
 \chapter{Learning languages}
+\label{languageschapter}
 \input{languages}
-%%
-%%\setcounter{chapter}{3}
+%
+%\setcounter{chapter}{3}
 \chapter{Learning mappings}
+\label{mappingsschapter}
 \input{processes}
-%%
-%%\setcounter{chapter}{4}
+%
+%\setcounter{chapter}{4}
 \chapter{Conclusion and future work}
 \input{conclusion}
 
