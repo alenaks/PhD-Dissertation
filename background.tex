@@ -1,27 +1,36 @@
 Linguistic rules capture two types of generalizations: \textbf{well-formedness conditions}, i.e.\ the requirements for a word to be well-formed, and \textbf{transformations}, i.e.\ the rules of re-computing the given underlying representation into the corresponding surface form.
-Former restrict the word's form itself, such as ``two vowels should never be adjacent to each other'', while latter describe the change, such as ``insert {[}j{]} in-between two adjacent vowels''.
+The former restrict the word's form itself, such as ``two vowels should never be adjacent to each other'', while the latter describe the change, such as ``insert {[}j{]} in-between two adjacent vowels''.
 For example, transformations map the Russian word that is orthographically represented as \emph{dlinnosheee} `long-necked' into its pronunciation \emph{dlinnosh[ejeje]}, and the well-formedness conditions ensure that the pronunciation \emph{dlinnosh[eee]} is not allowed since it contains two vowels adjacent to each other.
 
 
-\emph{Grammars} describe how to build well-formed words from the elements of the \emph{alphabet}.
-A \emph{language} of the grammar is a potentially infinite collection of all well-formed strings of that grammar.
-Thus in a formal sense, it simply refers to a collection of words, or \emph{strings}.
-Transformations are functions from the \emph{input language}, i.e.\ a collection of ``underlying representations'', onto the \emph{output language}, or a collection of ``surface forms''.
+\textbf{Grammars} describe how to build well-formed words from the elements of the \textbf{alphabet}.
+A \textbf{language} of the grammar is a potentially infinite collection of all well-formed strings of that grammar.
+Thus in a formal sense, it simply refers to a collection of words, or \textbf{strings}.
+\textbf{Transformations} are functions from the input language, i.e.\ a collection of ``underlying representations'', onto the output language, or a collection of ``surface forms''.
 
 
-In this chapter, I discuss \emph{subregular grammars} and \emph{subsequential functions} as they seem to be a good fit for natural language dependencies \citep[i.a.]{Heinz11part1,HeinzRawal11,GainorLai12,Heinz-Lai-2013-VHS,AksenovaEtAl16,Graf17CLSpres,ChandleeHeinz2018}.
-In the two following chapters, I show the results of the \textbf{automatic extraction} of subregular grammars and subsequential functions given the learning framework defined in Section \ref{learningframework}.
+In this chapter, I discuss \emph{subregular grammars} (Section~\ref{wellformednesssection}) and \emph{subsequential functions} (Section~\ref{modelingtransofrmationsection}) as they seem to be a good fit for natural language dependencies \citep[i.a.]{Heinz11part1,HeinzRawal11,GainorLai12,Heinz-Lai-2013-VHS,AksenovaEtAl16,Graf17CLSpres,ChandleeHeinz2018}.
+In the two following chapters, I show the results of the \emph{automatic extraction} of subregular grammars and subsequential functions given the learning framework defined in Section \ref{learningframework}.
 
 
 \section{Modeling well-formedness conditions}
+\label{wellformednesssection}
 
 To model well-formedness conditions means to find a way to discriminate between well-formed and ill-formed words of a language.
-In other words, it implies finding a \emph{grammar} that only builds well-formed strings, and that can recognize which strings are ill-formed.
-For example, given the alphabet of vowels and consonants, a grammar can prohibit vowel hiatus by penalizing adjacent vowels.
+In other words, it implies finding a grammar that only builds well-formed strings, and that can recognize which strings are ill-formed.
+For example, given the alphabet of vowels and consonants, a grammar can prohibit vowel hiatus by penalizing adjacent vowels.%
+\footnote{Strictly speaking, grammars do not recognize if a string is well-formed, but rather provide a finite specification of the language.
+Instead, a recognizer judges the well-formedness of strings.
+However, for the sake of simplicity and conciseness, I do not separate these two notions in my dissertation.
+}
 
 Subregular grammars provide an interpretable and succinct way to encode such rules.
-Interestingly, the subregular nature of linguistic generalizations allows us to explain the absence of some theoretically possible yet typologically unattested patterns \citep{GainorLai12}.
+These grammars are very weak and restricted, however, they are sufficiently powerful for natural language.
+Interestingly, the subregular nature of linguistic generalizations allows us to explain the absence of some theoretically possible yet typologically unattested patterns \citep{GainorLai12}; I come back to the issue of typology in Section~\ref{subgsgf}.
 Also, this approach gives insights into human cognition since there is evidence that only some subregular language classes are learnable \citep{Lai15}.
+As it follows from the name itself, subregular grammars are a subset of the regular ones, and therefore let us first establish the regular nature of natural language patterns.
+
+
 
 \subsection{Regular nature of natural language patterns}
 
@@ -36,13 +45,13 @@ If the compound is composed of multiple stems, the marker is added in-between ev
 This pattern can be viewed as a language of well-formed sequences of stems and compounding affixes.
 Strings such as \emph{stem}, \emph{stem-o-stem}, \emph{stem-o-stem-o-stem} belong to the target language, but \emph{stem-stem} and \emph{stem-o} do not.
 This can be rephrased a rule ``a well-formed form cannot start or end with a compounding marker, and within a word, two markers or two stems should not be adjacent to each other''.
-Generalizations like this can be conveniently expressed as \textbf{finite state automata}.
+Generalizations like this can be conveniently expressed as finite state automata.
 
 A \textbf{finite state automaton} (FSA) is a type of an abstract machine that is defined by a finite list of states and the transitions between those states \citep{Lawson2003}.
 In the case of string-based automata, these transitions are annotated with characters.
-An automaton reads a string of characters (the \emph{input string}), and every new character changes the current state.
-Some of the states are \emph{initial}, meaning that the first character of the input string can be read from those states.
-\emph{Final}, or \emph{accepting} states are the ones that indicate that the string is accepted.
+An automaton reads a string of characters (the input string), and every new character changes the current state.
+Some of the states are \textbf{initial}, meaning that the first character of the input string can be read from those states.
+\textbf{Final}, or \emph{accepting} states are the ones that indicate that the string is accepted.
 The input string is accepted by an automaton when the first character of that string can be read from the initial state, and this string is a path from the initial state to the final one.
 
 Consider the automaton in Figure \ref{fig:ruscompounding}.
@@ -77,15 +86,15 @@ A compounding marker \emph{-o-} moves the machine from the state $q_1$ to $q_2$.
 But $q_2$ is not final, so strings cannot be accepted if they end up in that state: the compounding marker cannot be the final element of the word.
 The machine then necessarily returns to the state $q_1$, therefore accepting \emph{stem-o-stem}.
 If more markers and stems follow, it takes the loop $q_1\rightarrow q_2\rightarrow q_1$ again.
-The complexity of the language recognized by an FSA is not more than \emph{regular}.
+The complexity of the language recognized by an FSA is not more than \textbf{regular}.
 
 
-\emph{Formal languages} are potentially infinite collections of strings produced according to the rules of some \emph{grammar}.
-Different language classes can be recognized by different automata.
+Regular languages are a specific type of \textbf{formal languages}, which in turn are (potentially infinite) collections of strings produced according to the rules of some grammar.
+Different language classes can be recognized by different automata, similarly to the way a finite state automaton was used before to encode a regular language of Russian compounding.
 These automata can also be referred to as \emph{abstract machines}, a more general name for theoretically possible computers encoding the rules of those languages.
 These machines, and therefore languages corresponding to them, can be ordered with respect to the complexity of the dependencies that they encode.
-The first version of such a hierarchy was introduced in \cite{Chomsky1956} and is therefore known as \emph{the Chomsky hierarchy}.
-Nowadays, we usually use an extended version of the hierarchy that includes \emph{mildly context-sensitive} and \emph{finite} language classes \citep{JagerRogers12}, see Figure \ref{fig:chomhier}.
+The first version of such a hierarchy was introduced in \cite{Chomsky1956} and is therefore known as \textbf{the Chomsky hierarchy}.
+Nowadays, we usually use an extended version of the hierarchy that includes mildly context-sensitive and finite language classes, see Figure~\ref{fig:chomhier}, and \cite{JagerRogers12} for a more detailed survey).
 
 
 
@@ -145,16 +154,17 @@ Below, there are \textbf{context-sensitive} languages that recognize non-linear%
 \footnote{The non-linearity refers to the growth of the number of $a$: every following number is \emph{much} larger than the previous.}
  patterns such as $a^{2n}$, where $n$ is greater than $0$.
 There are subclasses of context-sensitive languages which are a better fit for natural language syntax, such as \textbf{mildly context-sensitive} languages.
-They are a good fit for syntactic dependencies as they handle cross-serial dependencies such as some cases of copying \citep{Joshi1985,Shieber1985,Kallmeyer2010}.
+They are a good fit for syntactic dependencies as they handle cross-serial dependencies such as some cases of copying; see \citep{Huybregts1984,Joshi1985,Shieber1985,Kallmeyer2010} discussing syntax, and \citep{Culy1985} about a context-sensitive pattern in morphology.
 The machine corresponding to \textbf{context-free} languages uses a stack of a potentially infinite size: in such a way, it recognizes patterns such as $a^{n}b^{n}$, \emph{``have as many $a$ as $b$''} \citep{HopcroftEtAl2006}.
 \textbf{Regular} languages are limited to the dependencies that can be recognized by an FSA \citep{HopcroftEtAl2006}.
 It is commonly assumed that morphology and phonology are regular \citep{Johnson1972,KaplanKay94,BeesleyKartunnen03,RoarkSproat2007}, and I will come back to this topic in the following paragraphs.
 Finally, at the very bottom of the hierarchy, one can see a class of \textbf{finite} languages that refer to a finite number of strings.
-Classes that are more complex than mildly context-sensitive dependencies are rarely discussed in connection with natural languages: they are too powerful.
+Classes that are more complex than mildly context-sensitive dependencies are rarely discussed in connection with natural languages: they are too powerful.%
+\footnote{I am grateful to Jeff Heinz for supplying me with the examples of these formal languages.}
 
-Finite-state models correspond to regular languages, and were introduced in $1940$s by \citeauthor{McCullochPitts1943}.
-\cite{Chomsky1956}, however, theorized that this type of modeling does not seem to be suitable for natural languages, although in the following years his arguments were shown to be wrong.
-Despite that, there was a significant number of applications of finite-state machines to language-related tasks, such as text search \citep{Thompson1968}, machine translation \citep{OncinaEtAl1994,KnightAlOnaizan1998,BangaloreRiccardi2002}, speech recognition \citep{Caseiro2003,MohriPereiraRiley2002,MohriPereiraRiley2008}, semantic parsing \citep{JonesJohnsonGoldwater2011,JonesJohnsonGoldwater2012}, and others.
+Finite-state models correspond to regular languages, and were introduced in $1940$s by \cite{McCullochPitts1943}.
+\cite{Chomsky1956}, however, theorized that this type of modeling does not seem to be suitable for natural languages, although in the following years his arguments were shown to be inconclusive, and the question about the regular nature of linguistic dependencies was reopened again.
+Also, there was a significant number of applications of finite-state machines to language-related tasks, such as text search \citep{Thompson1968}, machine translation \citep{OncinaEtAl1994,KnightAlOnaizan1998,BangaloreRiccardi2002}, speech recognition \citep{Caseiro2003,MohriPereiraRiley2002,MohriPereiraRiley2008}, semantic parsing \citep{JonesJohnsonGoldwater2011,JonesJohnsonGoldwater2012}, and others.
 The restrictiveness of finite-state models is frequently used to balance the robustness of neural networks.
 For example, a neural FST-based pronunciation learning model was designed by \cite{Bruguier2017PronunciationLW}.
 Additionally, \cite{RoarkEtAl2019} use a neural network guided by a regular grammar to assign pronunciations to words.
@@ -177,8 +187,8 @@ Although regular languages are a good fit for linguistic patterns, research show
 \subsection{Subregular languages and their linguistic importance}
 \label{subgsgf}
 
-The class of regular languages can be subdivided into a nested hierarchy of \emph{subregular} classes -- \emph{subregular hierarchy}.
-``Parent'' classes are more powerful than their ``children'' classes, and therefore properly include them.
+The class of regular languages can be subdivided into a nested hierarchy of \emph{subregular} classes --- \textbf{subregular hierarchy}.
+``Parent'' classes properly subsume their ``children'' classes, and thus the former are more powerful than the latter.
 The ``sibling'' relation implies that the classes are not known to subsume each other.
 Some of the classes of the subregular hierarchy are presented below in Figure \ref{subreghier}.
 
@@ -213,7 +223,7 @@ Some of the classes of the subregular hierarchy are presented below in Figure \r
 \end{figure}
 
 Figure \ref{subreghier} shows some of the subregular classes, namely the ones that are crucially important for modeling linguistic dependencies, and therefore extensively used in this dissertation.
-Namely, those are strictly local (SL), strictly piecewise (SP), tier-based strictly local (TSL) and multi-tier strictly local (MTSL) languages.
+Those are strictly local (SL), strictly piecewise (SP), tier-based strictly local (TSL) and multi-tier strictly local (MTSL) languages.
 The crucial difference between these languages is in the types of dependencies they can capture, see Table \ref{subregclasses}.
 The combined functionality of those classes covers local dependencies and long-distance dependencies with or without a blocker.
 
@@ -224,7 +234,7 @@ The combined functionality of those classes covers local dependencies and long-d
 \hline
 \textbf{Language}      & \textbf{Dependencies it can handle}                       \\ \hline
 \textit{\textbf{SL}}   & only local dependencies                                   \\ \hline
-\textit{\textbf{SP}}   & only multiple long-distance dependencies without blocking \\ \hline
+\textit{\textbf{SP}}   & long-distance dependencies without blocking (any number thereof) \\ \hline
 \textit{\textbf{TSL}}  & long-distance dependencies with blocking                  \\ \hline
 \textit{\textbf{MTSL}} & multiple long-distance dependencies with blocking         \\ \hline
 \end{tabular}
@@ -244,35 +254,43 @@ A string $u$ is a subsequence of $w$ if all elements of $u$ can be found in $w$,
 Continuing the previous example, both \emph{aa} and \emph{bcd} are indeed subsequences of \emph{abacd}.
 Importantly, the elements of substrings and subsequences cannot violate the order in which the elements appeared in the original string: \emph{ca} is neither a substring nor a subsequence of the string \emph{abacd}.
 Subregular grammars are always defined for some particular locality, so a $2$-local grammar operates with substrings or subsequences of the length $2$.
-Formally, substrings and subsequences are defined in Definitions 2.1.1 and 2.1.4, and in \citep[a.o.]{ElzingaEtAl2008,Rogers-HeinzEtAl-2010-LPTSS,Fu2011}.
+Substrings and subsequences will be formally defined in the next two subsections (Definition 2.1.1 in Section \ref{substringformal}, and Definition 2.1.4 in Section \ref{SPformaldef}; see also \citep[a.o.]{ElzingaEtAl2008,Rogers-HeinzEtAl-2010-LPTSS,Fu2011}).
 
-While \emph{positive grammars} list all allowed substructures of their languages, the \emph{negative} ones list the substructures that must not be encountered in well-formed strings of their languages. Moreover, these grammars are equivalent, i.e.\ for every negative grammar, it is possible to construct a positive grammar that generates the same language, and vice versa.
+While \emph{positive grammars} list all allowed substructures of their languages, the \emph{negative} ones list the substructures that must not be encountered in well-formed strings of their languages.
+Moreover, for the subregular classes discussed in this thesis, these grammars are equivalent: for every negative grammar, it is possible to construct a positive grammar that generates the same language, and vice versa.
 
-The above mentioned subregular grammars are negative, so they prohibit certain substructures in well-formed strings of their languages.
+The example grammars discussed above are negative grammars, so they prohibit certain substructures in well-formed strings of their languages.
 \textbf{Strictly local} (SL) grammars filter strings that violate some local dependency in the string, i.e.\ contain ill-formed \emph{substrings} \citep{Heinz-2010-SEL}.
 For example, a language \emph{ab, abab, ababab, etc.} contains any possible string of $a$ and $b$ that does not contain the substrings $aa$ and $bb$.
 \textbf{Tier-based strictly local} (TSL) grammars project a potentially smaller string from the input string by using a tier alphabet.
 These grammars evaluate the relatively local dependencies among the elements of the \emph{tier alphabet}, whereas all other symbols are ``transparent'' for the grammar \citep{HeinzRawal11}.
 For example, if the tier contains $a$ and $b$ and the string is $bccacbc$, the \emph{tier image} of that string is $bab$.
-TSL constraints such as $ba$ or $ab$ would rule out that string.
+If a TSL constraints are $ba$ or $ab$, the string $bccacbc$ will be ruled out, since its tier image contains the illicit bigrams.
 \textbf{Multi-tier strictly local} (MTSL) grammars can have more than just a single tier, and, therefore, multiple tier images are evaluated with respect to multiple local grammars \citep{DeSantoGraf19FG}.
 \textbf{Strictly piecewise} (SP) grammars restrict certain \emph{subsequences} in well-formed strings of their languages \citep{Rogers-HeinzEtAl-2010-LPTSS,Heinz10ldp}.
 For example, if a subsequence $xx$ is prohibited, a string $xaaax$ is ruled out.
-In such a way, SL, SP, TSL and MTSL grammars model a wide range of local and long-distant processes \citep{Heinz11part1,HeinzRawal11,Heinz-Lai-2013-VHS,AksenovaEtAl16,ChandleeHeinz2018}.
-There are other subregular classes not listed here such as star free, interval-based strictly piecewise, input-output tier-based strictly local, piecewise testable, etc., but they are out of scope of this dissertation \citep{Lawson2003,Graf18NELS}.
+In such a way, SL, SP, TSL and MTSL grammars model a wide range of local and long-distant dependencies \citep{Heinz11part1,HeinzRawal11,Heinz-Lai-2013-VHS,AksenovaEtAl16,ChandleeHeinz2018}.
+
+
+There are other subregular classes not listed here such as star free (SF), interval-based strictly piecewise (IBSP), input-output tier-based strictly local (IO-TSL) and its subclasses, piecewise testable (PT), etc., but they are out of scope of this dissertation \citep{Lawson2003,Graf18NELS}.
 Additionally, I will only discuss grammars working with strings, but this approach is currently extended to other representations as well \citep{chandlee-etal-2019-learning,chandlee-jardine-2019-autosegmental}.
 
-The \emph{strong subregular hypothesis} suggests that a regular bound is too powerful for natural language phonology and phonotactics and that subregular languages are a better fit \citep{Heinz10ldp}.
-%Four subregular classes -- SL, SP, TSL, and MTSL -- fit most of the natural language dependencies.
-%An SL grammar puts restrictions on $n$-local \emph{substrings}, therefore it captures only local dependencies.
-%An SP grammar cannot express local processes because it prohibits \emph{subsequences}, i.e.\ not necessarily adjacent sequences of elements.
-%As a result, it captures long-distant dependencies such as some harmonies and UTP, but cannot model blocking effect.
-%A TSL grammar captures blocking by projecting all elements participating in the harmony on the tier, therefore, creating the locality relation among them.
-%However, a TSL grammar cannot capture several long-distance agreements if they target different sets of participants.
-%An MTSL grammar projects several tiers, therefore every observed agreement is captured by its own tier.
+The classes SL, TSL, MTSL, and SP jointly span a wide-ranging array of phonological phenomena.
+SL can handle all phenomena that are locally bounded, e.g.\ word-final devoicing or intervocalic voicing.
+It can also handle phenomena that are unbounded but proceed in locally bounded steps, for instance some types of vowel harmony where two harmonic vowels are never separated by more than two segments.
+Truly unbounded phenomena, on the other hand, require SP, TSL, or MTSL\@.
+SP can handle multiple long-distance phenomena at the same time, but only if they do not involve any blocking effects.
+An example of that is unbounded tone plateauing, where no low tone may occur within an interval spanned by two high tones, no matter how far apart those two tones are.
+For long-distance phenomena with blocking, one has to use TSL, but TSL is not as capable as SP when it comes to enforcing multiple long-distance dependencies in parallel.
+This shortcoming is remedied by TSL's extension MTSL\@.
+Neither TSL nor MTSL can handle unbounded tone plateauing, though, as will be explained in detail in Sec.~\ref{tslsubsection}.
+While, the next few subsections will greatly expand on this overview, it should already be apparent that these subregular classes do indeed cover a lot of empirical ground.
+
+The \textbf{strong subregular hypothesis} interprets the large empirical coverage of these few subclasses as a general indication that natural language phonology and phonotactics are much more restricted than previously believed --- in particular, the class of regular languages is too generous an upper bound and subregular classes provide a better fit for phonology \citep{Heinz10ldp}.
 In line with phonotactics, \cite{AksenovaEtAl16} shows that subregular languages are a good fit for morphotactic dependencies.
 The well-formedness conditions imposed on languages of generalized and monomorphemic quantifiers are also subregular.
 There are likewise applications of subregular grammars to syntax  \citep{Graf17Rutgerstalk,DeSantoGrafDrury2017,VuEtAl19SCiL}.
+These findings suggest that subregularity play an important role across many distinct language models, thereby bolstering the strong subregular hypothesis.
 
 In the rest of the chapter, I focus on SL, SP, TSL and MTSL languages and grammars, and provide linguistically-motivated examples of those.
 Additionally, I define these classes mathematically and describe the corresponding classes of finite-state automata.
@@ -309,11 +327,11 @@ Table \ref{fig:subrepattenslfg} summarizes patterns that are discussed further a
 
 The subregular class of strictly local (SL) languages captures local dependencies, and many restrictions in phonology have a purely local nature \citep{RogersPullum2011}.
 Indeed, most of the patterns of phonological assimilation affect adjacent segments.
-In what follows, I exemplify SL languages using several purely local processes, and then formally introduce them using the notion of $k$-factor and the property of suffix substitution closure \citep{RogersEtAl13}.
+In what follows, I exemplify SL languages using several purely local phenomena, and then formally introduce them using the notion of $k$-factor and the property of suffix substitution closure \citep{RogersEtAl13}.
 
 \subsubsection{Intuitive definition}
 
-In what follows, the SL languages are demonstrated through two local processes happening in Russian: one of them prohibits voiced obstruents in the word-final position, and another one enforces adjacent obstruents to agree in voicing.
+In what follows, the SL languages are demonstrated through two local phenomena happening in Russian: one of them prohibits voiced obstruents in the word-final position, and another one enforces adjacent obstruents to agree in voicing.
 Additionally, I show the interaction between these two patterns.
 
 \paragraph{Russian obstruent assimilation and word-final devoicing}
@@ -327,7 +345,7 @@ The examples (1-2) below show that the consonant of the preposition \emph{iz} `f
 \end{tabular}
 \medskip
 
-Additionally, in Russian, as well as in other languages such as German, there is a process of word-final devoicing that prohibits the appearance of a voiced obstruent in a word-final position \citep{Wiebke1995,Padgett2002ms}.
+Additionally, in Russian, as well as in other languages such as German, there is a word-final devoicing that prohibits the appearance of a voiced obstruent in a word-final position \citep{Wiebke1995,Padgett2002ms}.
 For example, \emph{lug} `field' is realized as \emph{lu[k]}.
 In this case, the same cluster of obstruents might appear voiceless word-finally, and voiced in other positions of the word, see the pairs of examples in (3-4) and (5-6).
 
@@ -349,13 +367,19 @@ Then, the SL grammar capturing word-final devoicing needs to rule out $z\eow$,  
 
 \begin{figure}[h!]
 \begin{center}
-\begin{tikzpicture}
+\begin{tikzpicture}%[baseline]
 \node (1) at (0,0) {$\rtimes$};
 \node (2) at (0.5,0) {m};
 \node (3) at (1,0) {o};
 \node (4) at (1.5,0) {s};
-\node (5) at (2,0) {k};
+\node (5) at (2,0.05) {k};
 \node (6) at (2.5,0) {$\ltimes$};
+%\node (1) at (0,0) {$\rtimes$};
+%\node[at=(1.base)] (2) {m};
+%\node[at=(2.base)] (3) {o};
+%\node[at=(3.base)] (4) {s};
+%\node[at=(4.base)] (5) {k};
+%\node[at=(5.base)] (6) {$\ltimes$};
 \end{tikzpicture}
 \hspace{2em}
 \begin{tikzpicture}
@@ -363,7 +387,7 @@ Then, the SL grammar capturing word-final devoicing needs to rule out $z\eow$,  
 \node (2) at (0.5,0) {m};
 \node (3) at (1,0) {o};
 \node (4) at (1.5,0) {z};
-\node (5) at (2,0) {g};
+\node (5) at (2,-0.05) {g};
 \node (6) at (2.5,0) {$\ltimes$};
 \draw [dashed, red] (1.8, -0.2) -- (1.8, 0.2) -- (2.7, 0.2) -- (2.7, -0.2) -- (1.8, -0.2);
 \end{tikzpicture}
@@ -374,7 +398,7 @@ Then, the SL grammar capturing word-final devoicing needs to rule out $z\eow$,  
 \node (2) at (0.5,0) {m};
 \node (3) at (1,0) {o};
 \node (4) at (1.5,0) {z};
-\node (5) at (2,0) {k};
+\node (5) at (2,0.05) {k};
 \node (6) at (2.5,0) {$\ltimes$};
 \draw [dashed, red] (1.3, -0.2) -- (1.3, 0.2) -- (2.2, 0.2) -- (2.2, -0.2) -- (1.3, -0.2);
 \end{tikzpicture}
@@ -384,7 +408,7 @@ Then, the SL grammar capturing word-final devoicing needs to rule out $z\eow$,  
 \node (2) at (0.5,0) {m};
 \node (3) at (1,0) {o};
 \node (4) at (1.5,0) {s};
-\node (5) at (2,0) {g};
+\node (5) at (2,-0.05) {g};
 \node (6) at (2.5,0) {$\ltimes$};
 \draw [dashed, red] (1.3, -0.2) -- (1.3, 0.2) -- (2.2, 0.2) -- (2.2, -0.2) -- (1.3, -0.2);
 \draw [dashed, red] (1.8, -0.3) -- (1.8, 0.3) -- (2.7, 0.3) -- (2.7, -0.3) -- (1.8, -0.3);
@@ -405,8 +429,8 @@ A set of restrictions $R$ of a negative grammar lists all substrings that \emph{
 An \emph{alphabet} of the language, usually denoted as $\Sigma$, includes the list of symbols the language uses.
 In this case, $\Sigma$ includes all Russian phonemes.
 Finally, every grammar defines its \emph{locality}, namely, the size of the longest string prohibited by that grammar; it is usually referred to as $k$ \citep{McNaughtonPapert1971,RogersPullum2011}.
-In the case of the SL grammar capturing Russian well-formedness conditions, all the prohibited strings are of length $2$ ($k=2$); such substrings are also called \emph{bigrams} or \emph{factors}.
-The Russian SL grammar is then strictly $2$-local, or $2$-SL.
+In the case of the SL grammar capturing Russian well-formedness conditions, all the prohibited strings are of length $2$ ($k=2$); such substrings are also called \emph{bigrams} or \emph{$2$-factors}.
+The Russian SL grammar is then strictly $2$-local, or SL-$2$.
 These three components -- the alphabet $\Sigma$, the set of restriction $R$, and the locality window $k$ -- define SL grammars, see Grammar \ref{slwfdocass55}.
 
 {
@@ -419,7 +443,7 @@ These three components -- the alphabet $\Sigma$, the set of restriction $R$, and
 \textit{$R$ =} & $\langle$zs, zp, zk, sz, sb, sg $\dots$ z\eow,  g\eow, b\eow, d\eow $\rangle$  \\
 \textit{$k$ =}      & $2$          
 \end{tabular}
-\caption{$2$-SL grammar for Russian obstruent voicing assimilation and word-final devoicing.}
+\caption{SL-$2$ grammar for Russian obstruent voicing assimilation and word-final devoicing.}
 \label{slwfdocass55}
 \end{center}
 \end{table}
@@ -427,14 +451,14 @@ These three components -- the alphabet $\Sigma$, the set of restriction $R$, and
 
 SL grammars disallow the appearance of the banned clusters such as $gs$ or $zk$, however, they do not induce the change of the ill-formed segments.
 The perspective of changing one form into another is examined in the Section 2.2 discussing modeling transformations.
-SL models are useful in modeling the well-formedness conditions arising from word-final devoicing, intervocalic voicing, consonant cluster assimilation, and other local processes.
+SL models are useful in modeling the well-formedness conditions arising from word-final devoicing, intervocalic voicing, consonant cluster assimilation, and other local phenomena.
 However, SL models cannot model long-distance dependencies.
 
 \paragraph{Tuareg sibilant harmony}
 Long-distance dependency affects segments that can be located far from each other.
 For instance, in Tuareg (Berber), sibilants regressively agree in voicing and anteriority \citep{Hansson2010ber}.
 In the examples below, a causative prefix agrees with the sibilant in the root (8-11) but is realized as \emph{s-} if no other sibilant is present (7).
-This agreement is long-distant, and therefore it can happen across an arbitrary number of intervening elements.
+This is an instance of long-distance agreement, and therefore it can happen across an arbitrary number of intervening elements.
 
 \medskip
 \begin{tabular}{lll}
@@ -451,20 +475,32 @@ It would imply that the required locality of the SL grammar is at least $6$ to a
 However, this would not be enough for other cases since there is no upper bound on the number of the intervening segments in-between two agreeing sibilants.
 As a result, the power of SL grammars is not enough to capture patterns such as Tuareg sibilant harmony.
 
+Playing devil's advocate, though, one may object that in practice there is such a thing as a longest word due a variety of reasons, e.g.\ performance limitations or limited morphological productivity.
+If the longest word has at most $n$ segments, then no phonological phenomenon can involve more than $n$ segments, making in SL-$n$.
+But there are multiple problems with this position.
+First of all, it ignores the widely assumed distinction between competence and performance.
+Second, it assumes that phonology is limited to a single phonological word, which isn't the case either.
+At least some phenomena apply across phonological word boundaries, so it is not enough to assume a fixed upper bound on the length of phonological words --- one has to assume a fixed upper bound on the length of phonological dependencies.
+Finally, and most importantly, this position ignores succinctness.
+The number of possible $n$-grams grows exponentially with $n$: assuming an inventory of 10 distinct sounds, there are $10^2 = 100$ distinct bigrams, $10^3 = 1,000$ trigrams, $10^4 = 10,000$ $4$-grams, and so on.
+The size of an SL grammar explodes as we extend to handle increasingly non-local phenomena.
+And this also poses a challenge for learnability because larger SL-grammars require more evidence to infer from the training data (a space of $100$ options is more easily explored than one of $10,000$ options).
+So even if long-distance phenomena might indeed be limited to some fixed upper bound, this bound is so high for natural languages that an SL grammar simply cannot describe these long-distance phenomena in a succinct and elegant manner that supports efficient learning.
 
 
 \subsubsection{Formal definition}
+\label{substringformal}
 
 SL grammars define languages by listing substrings that cannot appear in well-formed words of those languages.
 These substrings are often referred to as $k$-factors, in order to be distinguished from the more NLP-oriented use of the term $n$-gram, that frequently implies the use of probabilistic models \citep{RogersPullum2011,RogersEtAl13}.
 Further in this section, I follow \cite{DeSantoGraf19FG} in their algebraic definition of this class.
 
 While $\Sigma$, as previously in this section, denotes the alphabet, $\Sigma^{k}$ is a $k$-long word that uses symbols of that alphabet.
-$\Sigma^{*}$ generalizes $\Sigma^{k}$, it employs the \emph{Kleene star} \citep{Kleene1956} to define a word of any length.
+$\Sigma^{*}$ generalizes $\Sigma^{k}$, it employs the \emph{Kleene star} \citep{Kleene1956} to define a word of any length, including length $0$, i.e.\ the empty string $\varepsilon$.
 A length of the string $w$ is denoted as $|w|$.
 
 \begin{definition}[\textbf{$k$-factors}]
-A string $u$ is a $k$-\emph{factor} of a string $w$ iff $\exists x, y \in \Sigma^*$ such that $w=xuy$ and $|u| = k$. 
+A string $u$ is a $k$-\emph{factor}, or a \emph{substring} of a string $w$ iff $\exists x, y \in \Sigma^*$ such that $w=xuy$ and $|u| = k$. 
 The function $F_k$ maps words to the set of $k$-factors within them:
 $$
 F_k(w) = \{ u : u \textit{ is a $k$-factor of } w \textit{ if } |w| \geq k, 
@@ -474,6 +510,8 @@ $$
 
 For example, the $2$-factors of the word $abc$ are $\{ab, bc\}$.
 Strictly $k$-local grammars list the $k$-factors that cannot be used in the well-formed strings of their languages, i.e.\ they can be viewed as collections of illicit $k$-factors.
+Markers $\bow\not\in\Sigma$ and $\eow\not\in\Sigma$ are used in the same way as previously in Section \ref{russianwfdpatternn}: they are edge markers marking the beginning and the end of the string.
+
 
 \begin{definition}[\textbf{SL languages and grammars}]
 A language $L$ is \emph{strictly $k$-local} (SL$_k$) iff there exists a finite set $S \subseteq F_k (\rtimes^{k-1} \Sigma^* \ltimes^{k-1})$ such that
@@ -485,8 +523,8 @@ A language $L$ is strictly local iff it is SL$_k$ for some $k \in \mathbb{N}$.
 \end{definition}
 
 Consider a language described by a regular expression $(ab)^{*}$.
-Its language includes strings such as $\epsilon$, $ab$, $abab$, $ababab$, etc.
-A negative $2$-SL grammar that describes this language is $S = \{\bow b, a\eow, aa, bb\}$.
+Its language includes strings such as $\varepsilon$, $ab$, $abab$, $ababab$, etc.
+A negative SL-$2$ grammar that describes this language is $S = \{\bow b, a\eow, aa, bb\}$.
 Indeed, the well-formed strings of that language cannot start with $b$, end with $a$, and have two $a$ or two $b$ adjacent to each other.
 Importantly, a language is strictly $k$-local if it satisfies $k$-local \emph{suffix substitution closure} \citep{RogersPullum2011}.
 
@@ -495,15 +533,23 @@ Importantly, a language is strictly $k$-local if it satisfies $k$-local \emph{su
 For any $k \geq 1$, a language $L$ satisfies  $k$-local suffix substitution closure iff for all strings $u_1, v_1, u_2, v_2$, for any string $x$ of length $k - 1$ if both $u_1 \cdot x \cdot v_1 \in L$ and $u_2 \cdot x \cdot v_2 \in L$, then $u_1 \cdot x \cdot v_2 \in L$.
 \end{definition}
 
-For instance, a language $(ab)*$ is $2$-SL, and it satisfies the suffix substitution closure.
+For instance, a language $(ab)^*$ is SL-$2$, and it satisfies suffix substitution closure.
 Both strings \emph{\textbf{a}b} and \emph{ab\textbf{a}bab} contain the $1$-local substring $a$, and it correctly predicts that the string \emph{ab\textbf{a}b} is also in the language.
 However, a language $a^*ba^*$ is not SL.
-It is not $2$-SL since the closure of the strings \emph{\textbf{a}ba} and  \emph{b\textbf{a}a} contains \emph{b\textbf{a}ba}, and it is not in the language.
-It is not $3$-SL, because the closure of \emph{\textbf{aa}ba} and \emph{b\textbf{aa}a} contains the illicit form \emph{b\textbf{aa}ba}; and so on.
+It is not SL-$2$ since the closure of the strings \emph{\textbf{a}ba} and  \emph{b\textbf{a}a} contains \emph{b\textbf{a}ba}, and it is not in the language.
+It is not SL-$3$, because the closure of \emph{\textbf{aa}ba} and \emph{b\textbf{aa}a} contains the illicit form \emph{b\textbf{aa}ba}; and so on.
 The language $a^*ba^*$ is not closed under the suffix substitution, and therefore it is not SL.
 
 Apart from the algebraic perspective, strictly local languages can be characterized in automata-theoretic terms.
 \cite{RogersPullum2011} describe SL languages as those that can be recognized by FSAs scanning a $k$-symbol window across the input string, and failing on strings that contain factors prohibited by the corresponding grammar.
+In such an SL-$k$ automaton, states represent the $k-1$-local suffix of the input string read immediately before now, and the transitions from the states encode symbols that can follow.
+If a transition cannot be taken, or if the final activated state is not accepting, the input string is rejected.
+When a string is well-formed, there is a part through the automaton that starts in the initial state and ends in the final one.
+
+
+
+States of SL-automata encode the previous substring of the input string.
+So, for example, in SL-$2$ automaton the states differentiate depending on the symbol that was observed 
 
 
 \subsection{Long distance restrictions as SP languages}
@@ -542,7 +588,7 @@ In total, this grammar contains $12$ restrictions $R$ that are listed in Grammar
 \textit{$R$ =} & $\langle$sz, s\textesh, s\textyogh, zs, \textesh s, \textyogh s, z\textesh, z\textyogh, \textesh s, z\textesh, z\textyogh, \textesh z, \textesh z, \textesh\textyogh, \textesh z$\rangle$  \\
 \textit{$k$ =}      & $2$          
 \end{tabular}
-\caption{$2$-SP grammar for Tuareg sibilant harmony in voicing and anteriority.}
+\caption{SP-$2$ grammar for Tuareg sibilant harmony in voicing and anteriority.}
 \label{tuaregsibilanthupd}
 \end{center}
 \end{table}
@@ -640,9 +686,9 @@ As a result, it would incorrectly predict the well-formedness of the word \emph{
 
 
 \paragraph{Unbounded tone plateauing}
-The ability of SP grammars to see substructures independently of other elements of the string gives them the power to encode \emph{unbounded tone plateauing} (UTP) attested in Luganda (Niger-Congo).
+The ability of SP grammars to see substructures independently of other elements of the string gives them the power to encode \emph{unbounded tone plateauing} (UTP), as attested in Luganda (Niger-Congo).
 In that language, low tones are realized as high if they are surrounded by high tones \citep{HymanKatamba2010}.
-This makes it impossible for a well-formed word in Luganda to have low tones surrounded by high tones, see data in (19) cited by \citep{Hyman2011,Jardine2016}.
+This makes it impossible for a well-formed word in Luganda to have low tones surrounded by high tones, see the data in (19) cited by \citep{Hyman2011,Jardine2016}.
 Accented vowels indicate high tones, and other vowels are low.
 
 \medskip
@@ -693,21 +739,26 @@ Due to the long-distant nature of SP grammars, a $3$-local SP grammar can captur
 \textit{$R$ =} & $\langle$HLH$\rangle$  \\
 \textit{$k$ =}      & $3$          
 \end{tabular}
-\caption{$3$-SP grammar for Luganda unbounded tone plateauing.}
+\caption{SP-$3$ grammar for Luganda unbounded tone plateauing.}
 \label{utpsuccessfulsp}
 \end{center}
 \end{table}
 }
 
-Strictly piecewise grammars capture one or more long-distance processes that do not exhibit blocking effects.
+Strictly piecewise grammars capture one or more long-distance phenomena that do not exhibit blocking effects.
 They prohibit subsequences of strings, therefore ruling out all words that contain the illicit substructure.
 For example, the restriction $zs$ means that nowhere in the string, $z$ can be followed by $s$.
 However, blocking effects cannot be captured via an SP grammar, because the grammar is not sensitive to the presence of the blockers that make the banned substructure acceptable.
+A pattern where a substring $s\dots z$ is prohibited, but $s\dots k \dots z$ is allowed is not SP: ruling out the former one would rule out the latter one as well.
+Blockers do not change the presence of an illicit subsequence.
 Purely short-distant restrictions such as the word-final devoicing also cannot be expressed by an SP grammar: the restriction $b\eow$ prohibits \emph{any} string containing $b$, because $\eow$ always follows $b$ in a word annotated with the word-final marker $\eow$.
 
 
 
+
+
 \subsubsection{Formal definition}
+\label{SPformaldef}
 
 An SP grammar is defined as a list of subsequences prohibited in well-formed strings of its language.
 Further, I define the notion of the subsequence and the SP languages formally following \cite{Rogers-HeinzEtAl-2010-LPTSS}, and then provide an alternative definition in automata-theoretic terms.
@@ -715,7 +766,6 @@ Further, I define the notion of the subsequence and the SP languages formally fo
 
 
 \begin{definition}[\textbf{Subsequences}]
-A \emph{subsequence} relation $v \sqsubseteq~ w$ is a partial order on the elements of $\Sigma^*$.
 A string $v$ is a subsequence of $w$, $v \sqsubseteq~ w$, if $v$ is an empty string, or if $v = \sigma_1\sigma_2\dots\sigma_n$, and there is a collection of substrings $x_1, \dots, w_n \in \Sigma^*$, such that those substrings can be placed between the elements of $v$ thus obtaining $w = w_0\sigma_1 w_1\dots\sigma_n w_n$.
 
 Then all $k$-long subsequences $P_k(w)$ of a word $w \in \Sigma^*$ can be computed as
@@ -730,22 +780,21 @@ $$ P_{\leq k}(w) = \{v \in \Sigma^{\leq k} : v \sqsubseteq w\} $$
 
 
 For example, consider a string $w = abcd$.
-Then $P_{3}(w) = \{abc, abd, acd\}$, and $P_{\leq 3}(w) = P_{3}(w) \cup \{\epsilon, a, b, c, d, ab, ac, ad, bc, bd, cd\}$, where $\epsilon$ is the empty string.
+Then $P_{3}(w) = \{abc, abd, acd\}$, and $P_{\leq 3}(w) = P_{3}(w) \cup \{\varepsilon, a, b, c, d, ab, ac, ad, bc, bd, cd\}$, where $\varepsilon$ is the empty string.
 
 \begin{definition}[\textbf{SP languages and grammars}]
-A $k$-SP grammar is a pair $\mathcal{G} = \langle \Sigma, S\rangle$ where $S \subseteq \Sigma^k$. The language licensed by a $k$-SP grammar is
+A language is SP-$k$ if there exists a set of subsequences $S \subseteq \Sigma^k$ such that
 
 \[
-	L(\mathcal{G}) = \{w \in \Sigma^* : P_{\leq k}(w) \subseteq P_{\leq k}(T)\}.
+	L(\mathcal{G}) = \{w \in \Sigma^* : P_{\leq k}(w) \subseteq P_{\leq k}(S)\}.
 \]
 \end{definition}
 
-%Consider a $3$-SP grammar with $\Sigma = \{a, o, x\}$, and prohibited substrings $ao$ and $oa$.
-%Elements $a$ and $o$ can thus never co-occur within a word, no matter how far away they are from each other, separated by numerous $x$.
+
 The exact reason why SP grammars cannot capture the blocking effect is their \emph{closure under subsequence}; see \citep{Rogers-HeinzEtAl-2010-LPTSS} for other properties of SP languages and grammars.
 
 \begin{definition}[\textbf{Subsequence closure}]
-Given a word $w \in L$, all strings $v$ that are subsequences of $w$, $v \sqsubseteq w$, also belong to the language $L$: $v \in L$.
+Given a word $w \in L$, all strings $v$ that are subsequences of $w$, $v \sqsubseteq w$, also belong to the language $L$.
 \end{definition}
 
 
@@ -766,6 +815,7 @@ A DFA with these properties accepts only SP languages.
 
 
 \subsection{Long-distant dependencies with blocking as TSL languages}
+\label{tslsubsection}
 
 
 Earlier, I showed that SL and SP grammars cannot capture long-distance harmonies with a blocking effect.
@@ -781,9 +831,8 @@ I demonstrate the capacities of TSL grammars using the examples of vowel harmony
 Consider vowel harmony in Karaj\'a (Macro-J\^e), where a tense vowel spreads the advanced tongue root (ATR) feature leftwards.
 It makes it impossible to have a lax vowel followed by a tense one.
 This spreading can be blocked by intervening nasalized vowels; they are opaque for this harmony \citep{Ribeiro2002}.
+\bigskip
 
-
-\begin{figure}[h!]
 \begin{tabular}{llll}
 (20) & woku & {[}woku{]} & `inside' \\
 (21) & d\textopeno r\textepsilon & {[}d\textopeno r\textepsilon{]} & `parrot' \\
@@ -793,9 +842,9 @@ This spreading can be blocked by intervening nasalized vowels; they are opaque f
 (25) & rak\textopeno h\textopeno\texthtd\textepsilon k\~ore & {[}rak\textopeno h\textopeno\texthtd\textepsilon k\~ore{]} & `He/she didn't hit it.' \\
 (26) & r\textepsilon b\~\textschwa re & {[}r\textepsilon m\~\textschwa re{]} & `I caught (it).'
 \end{tabular}
-\end{figure}
 
-The data in (20-26) exemplifies the rule of harmony and is discussed in more detail in \citep{Ribeiro2002}.
+\bigskip
+The data in (20-26) exemplifies the rule of harmony and is discussed in more detail in \cite{Ribeiro2002}.
 Note, that the harmony is reflected in the transcriptions and not in the orthography of the language.
 Stems in Karaj\'a can contain tense (20) or lax (21) vowels, and the lax vowels can only follow the tense ones (22).
 A tense vowel starts its harmonic domain and spreads the [+ATR] feature regressively (23-24).
@@ -825,7 +874,7 @@ This makes TSL grammars a good fit for many harmonic patterns, even if they exhi
 \textit{$R$ =} & $\langle$\textepsilon e, \textepsilon o,  \textopeno o, \textopeno u, \textepsilon u $\dots\rangle$  \\
 \textit{$k$ =}      & $2$          
 \end{tabular}
-\caption{$2$-TSL grammar for Karaj\'a vowel harmony in ATR.}
+\caption{TSL-$2$ grammar for Karaj\'a vowel harmony in ATR.}
 \label{fdfsdrgr}
 \end{center}
 \end{table}
@@ -967,7 +1016,7 @@ In such a way, we encode Buryat vowel harmony in ATR and rounding using a TSL gr
 \textit{$R$ =} & $\langle$\textopeno o, o\textopeno,  \textupsilon u, u\textupsilon $\dots$ \textopeno a, a\textopeno, eo, oe, ao $\dots$ \textupsilon\textopeno, uo, u\textopeno,  \textupsilon o$\rangle$  \\
 \textit{$k$ =}      & $2$          
 \end{tabular}
-\caption{$2$-TSL grammar for Buryat vowel harmony in ATR and rounding.}
+\caption{TSL-$2$ grammar for Buryat vowel harmony in ATR and rounding.}
 \label{buryatvw}
 \end{center}
 \end{table}
@@ -1101,7 +1150,7 @@ In such a way, TSL grammar captures a pattern where a certain set of elements ex
 \label{fig:bur}
 \end{figure}
 
-Apart from the long-distant patterns, TSL grammars can easily capture local dependencies since they are a proper extension of SL languages, see section \ref{subgsgf}.
+Apart from the long-distant patterns, TSL grammars can easily capture local dependencies since they are a proper extension of SL languages, as defined in Secion~\ref{subgsgf}.
 If a purely local dependency such as obstruent word-final devoicing or obstruent cluster voicing assimilation is expressed via a TSL grammar, its tier alphabet $T$ will be the same as $\Sigma$.
 
 As of the patterns discussed above, the Tuareg sibilant harmony in voicing and anteriority can also be described by a TSL grammar.
@@ -1124,27 +1173,27 @@ However, several long-distant assimilations cannot be expressed by a single TSL 
 TSL languages are a proper extension of the SL ones, but the $k$-local constraints are imposed on the \emph{tier} symbols $T \subseteq \Sigma$.
 \cite{DeSantoGraf19FG} define tier-locality using the notion of the \emph{erasing function} $E$, also called the \emph{projection function}.
 Its purpose is to delete all symbols that are not included in the tier alphabet $T$.
-Given some string $\sigma \in \Sigma$, the erasing function $E_{T}$ maps $\sigma$ to itself if $\sigma \in T$ and to $\epsilon$ otherwise.
-In such a way, under the erasing function, a tier image of a word $w = \sigma_0\dots\sigma_n$ is obtained by substituting non-tier elements $\sigma \not\in T$ by $\epsilon$.
+Given some string $\sigma \in \Sigma$, the erasing function $E_{T}$ maps $\sigma$ to itself if $\sigma \in T$ and to $\varepsilon$ otherwise.
+In such a way, under the erasing function, a tier image of a word $w = \sigma_0\dots\sigma_n$ is obtained by substituting non-tier elements $\sigma \not\in T$ by $\varepsilon$.
 
 
 \begin{definition}[\textbf{TSL languages and grammars}]
-A language $L$ is \emph{tier-based strictly $k$-local} ($k$-TSL) iff there exists a tier $T \subseteq \Sigma$ and a finite set $S \subseteq F_k(\rtimes^{k-1} T^* \ltimes^{k-1})$ such that
+A language $L$ is \emph{tier-based strictly $k$-local} (TSL-$k$) iff there exists a tier $T \subseteq \Sigma$ and a finite set $S \subseteq F_k(\rtimes^{k-1} T^* \ltimes^{k-1})$ such that
 \[
 L = \{ w \in \Sigma^* :   F_k(\rtimes^{k-1} E_T(w) \ltimes^{k-1})  \cap S = \emptyset \}
 \]
-Additionally, $S$ the set of forbidden $k$-factors on tier $T$, and $\langle T, S\rangle$ is a $k$-TSL grammar.
+Additionally, $S$ the set of forbidden $k$-factors on tier $T$, and $\langle T, S\rangle$ is a TSL-$k$ grammar.
 \end{definition}
 
 \cite{DeSantoGraf19FG} show that a language $L$ is TSL iff it is strictly $k$-local on tier $T$ for some $T \subseteq \Sigma$ and $k \in \mathbb{N}$.
-Indeed, SL properties such as suffix substitution closure (see the definitions in \ref{suffsubclosure}) can be generalized, as it was done by \cite{LambertRogers2020}.
+Indeed, SL properties such as suffix substitution closure (see the definitions in \ref{suffsubclosure}) can be generalized, as was done by \cite{LambertRogers2020}.
 For example, a language $x^*a^*x^*b^*x^*$ is not SL since it is not closed under suffix substitution.
-However, if only $a$ and $b$ are included in the tier alphabet, it becomes $2$-TSL, with the shape of the tier restricted to $a^*b^*$. 
+However, if only $a$ and $b$ are included in the tier alphabet, it becomes TSL-$2$, with the shape of the tier restricted to $a^*b^*$. 
 
 
 
 In their paper, \cite{LambertRogers2020} show how to construct a DFA for a given TSL grammar.
-Namely, they start by encoding every allowed $k$-TSL factor in its own automaton, uniting all the automata obtained this way, and then adding loops reading non-tier symbols to every state.
+Namely, they start by encoding every allowed TSL-$k$ factor in its own automaton, uniting all the automata obtained this way, and then adding loops reading non-tier symbols to every state.
 In such a way, a TSL-representing DFA is a DFA expressing the local restrictions on the tier symbols, and looping on the non-tier ones.
 
 
@@ -1175,7 +1224,7 @@ However, while the anteriority harmony cannot be blocked by anything, the voicin
 
 This pattern is not SL, SP or TSL.
 It is not SL since it involves a long-distance dependency.
-An SP grammar cannot capture it either because it cannot model blockers.
+An SP grammar cannot capture it, either, because it cannot model blockers.
 A TSL grammar is not a good fit either: both sibilants and voiceless obstruents need to be present on the tier to express the voicing harmony; however, the presence of non-sibilants on the tier breaks the tier locality required to model the anteriority assimilation.
 More than a single tier is required to model this generalization.
 
@@ -1198,7 +1247,7 @@ The obtained grammar is summarized in \ref{imdlawnmtsl}.
 \textit{$R_{voice}$ =} & \{sz, zs, \textesh\textyogh, \textyogh\textesh, z\textcrh, zk, zf, z\textchi, zq, \textyogh\textcrh, \textyogh k, \textyogh f, \textyogh\textchi, \textyogh q\}  \\
 \textit{$k$ =}      & $2$          
 \end{tabular}
-\caption{$2$-MTSL grammar for Imdlawn Tashlhiyt sibilant harmony in voicing and anteriority.}
+\caption{MTSL-$2$ grammar for Imdlawn Tashlhiyt sibilant harmony in voicing and anteriority.}
 \label{imdlawnmtsl}
 \end{center}
 \end{table}
@@ -1378,7 +1427,7 @@ In Bukusu (Bantu), vowels agree in height along with the assimilation of nasals 
 The language at the intersection of several TSL grammars can be viewed as a single grammar projecting multiple tiers, i.e.\ a multi-TSL, or MTSL grammar \citep{DeSantoGraf19FG}.
 
 \begin{definition}[\textbf{MTSL languages}]
-An $n$-tier strictly $k$-local ($n$-MTSL$_k$) language $L$ is the intersection of $n$ distinct $k$-TSL languages ($k,n \in \mathbb{N}$).
+An $n$-tier strictly $k$-local ($n$-MTSL$_k$) language $L$ is the intersection of $n$ distinct TSL-$k$ languages ($k,n \in \mathbb{N}$).
 \end{definition}
 
 Since the language of an MTSL grammar is the intersection of several TSL languages, one can imagine a construction of the corresponding DFA by intersecting several DFAs representing those TSL languages.
@@ -1388,9 +1437,28 @@ Consequently, it includes MTSL languages.
 
 
 
+\subsection{Unattested patterns}
+\label{unattestedpatternssubseq}
 
 
+Interestingly, none of the subregular language classes mentioned above express such theoretically possible but unattested patterns as first-last harmony, where the first vowel of the word needs to harmonize with the last one, and some others \citep{Lai15,Avcu2018}.
 
+\medskip
+\noindent \textbf{First-last harmony} \quad In a prosodic word, the first vocalic segment harmonizes with the last one.
+
+\noindent \textbf{Majority harmony} \quad In a prosodic word, if a majority of vowels are underlyingly fronted, all vowels acquire the fronting feature; otherwise, they all become back.
+
+\noindent \textbf{Sour grapes harmony} \quad In a prosodic word, features A and B are spreading.
+However, if some of the spreadings are blocked, no spreading applies.
+\medskip
+
+While the typological explorations of harmony systems suggest that this is due to the computational limitations \citep{Heinz-Lai-2013-VHS}, there could be other reasons as well.
+For example, there is a possibility that such systems cannot evolve naturally in human languages \citep{Blevins2004}.
+More research is needed to understand the nature of the restrictions on natural language patterns, but the results supporting the strong subregular hypothesis suggest that all attested patterns in phonology can be captured by means of subregular languages.
+
+Of course, the accessible typological data is limited, and therefore it is difficult to verify some of the subregular predictions.
+However, relying on the available knowledge is necessary to build the initial conceptions about the system of rules behind natural languages.
+Only after the initial assumptions are made, they can be improved, and, ultimately, lead to discoveries.
 
 
 
@@ -1398,17 +1466,17 @@ Consequently, it includes MTSL languages.
 
 Subregular grammars describe well-formedness conditions imposed on words in natural languages.
 In this section, I focused on SL, SP, TSL, and MTSL grammars since they capture a vast majority of phonological patterns.
-SL grammars capture only local processes, therefore they are a good fit for word-final devoicing and obstruent cluster voicing assimilation.
+SL grammars capture only local phenomena, therefore they are a good fit for word-final devoicing and obstruent cluster voicing assimilation.
 SP grammars generalize long-distance dependencies by prohibiting certain orders of elements, thus they are a good fit for harmonies without blockers and unbounded tone plateauing.
-Only a certain subset of elements of the alphabet is projected on a tier by TSL grammars, therefore they capture a long-distance process locally by ignoring irrelevant segments.
-This allows them to model a harmony process that can potentially involve blockers.
+Only a certain subset of elements of the alphabet is projected on a tier by TSL grammars, therefore they capture a long-distance dependencies locally by ignoring irrelevant segments.
+This allows them to model a harmony that can potentially involve blockers.
 Finally, MTSL grammars project several tiers, and this helps to represent several independent yet simultaneous harmonies. 
+Neither of these $4$ classes is powerful enough to encode such theoretically possible yet typologically unattested patterns as first-last harmony, as Section \ref{unattestedpatternssubseq} shows. 
 In such a way, these subregular grammars can capture most of the dependencies imposed by phonological well-formedness conditions.
 
 Some known natural language patterns, however, require powers of different subregular language classes.
 Among them, there is a pattern of Sanskrit /n/-retroflexion and Yaka harmony triggered by local conditions \citep{Walker2000,McMullin2016,Karakas2020}.
 IO-TSL and IBSP subregular language classes can models those cases \citep{Graf17Phonology,Graf18NELS}.
-Interestingly, none of the subregular language classes mentioned above can express such theoretically possible but unattested patterns as first-last harmony, where the first vowel of the word needs to harmonize with the last one \citep{Lai15,Avcu2018}.
 
 
 Later, in chapter 3 of this dissertation, I discuss several subregular patterns and show how the corresponding grammars can be learned from the real data.
@@ -1423,6 +1491,7 @@ Later, in chapter 3 of this dissertation, I discuss several subregular patterns 
 
 
 \section{Modeling transformations}
+\label{modelingtransofrmationsection}
 
 The previous section explored modeling of natural language well-formedness conditions using subregular languages.
 Here, I discuss formalizing and modeling \emph{transformations}, or rewrite rules, that apply to underlying representations and yield corresponding surface forms.
@@ -1439,7 +1508,7 @@ So, for example, all vowels in a word \emph{to:r-u:l-e:d} `wander-\textsc{caus-p
 In \emph{to:r-o:d} `wander-\textsc{perf}', all vowels are low, and therefore they agree in rounding as well.
 Values of non-initial vowels only depend on their height and the value of the previous vowel.
 
-Now, consider this harmony as a set of pairs exemplifying the mapping from the underlying representations (UR) to the surface forms (SF), see data in (33-38).
+Now, consider this harmony as a set of pairs exemplifying the mapping from the underlying representations (UR) to the surface forms (SF), see the data in (33-38).
 
 \begin{figure}[h]
 \begin{tabular}{llcll}
@@ -1596,11 +1665,11 @@ This simplified alphabet is used in Figure \ref{ssqwfdddd} showing a subsequenti
 \begin{figure}[h!] 
 \centering
 \begin{tikzpicture}
-\node[state, initial]  at (0,0) (e) {$0:\epsilon$};
+\node[state, initial]  at (0,0) (e) {$0:\varepsilon$};
 \node[state] at (3,0) (b) {$1:P$};
 \path[->] (e) edge[loop above] node{P:P} (e)
 		  (e) edge[loop below] node{N:N} (e)
-		  (e) edge[above, bend left] node{B:$\epsilon$} (b)
+		  (e) edge[above, bend left] node{B:$\varepsilon$} (b)
 		  (b) edge[below, bend left] node{N:BN, P:BP} (e)
 		  (b) edge[loop above] node{B:B} (b);
 \end{tikzpicture}
@@ -1678,11 +1747,11 @@ For example, in (43), the third segment from the end is \textyogh~ that moves th
 \begin{figure}[h!] 
 \centering
 \begin{tikzpicture}
-\node[state, initial right]  at (3,0) (e) {$0:\epsilon$};
-\node[state] at (0,2.25) (s) {$1:\epsilon$};
-\node[state] at (0,0.75) (S) {$2:\epsilon$};
-\node[state] at (0,-0.75) (z) {$3:\epsilon$};
-\node[state] at (0,-2.25) (Z) {$4:\epsilon$};
+\node[state, initial right]  at (3,0) (e) {$0:\varepsilon$};
+\node[state] at (0,2.25) (s) {$1:\varepsilon$};
+\node[state] at (0,0.75) (S) {$2:\varepsilon$};
+\node[state] at (0,-0.75) (z) {$3:\varepsilon$};
+\node[state] at (0,-2.25) (Z) {$4:\varepsilon$};
 \path[->] (e) edge[loop above] node{S:s, N:N} (e)
 		  (s) edge[loop left] node{S:s, N:N} (s)
 		  (z) edge[loop left] node{S:z, N:N} (z)
@@ -2008,13 +2077,13 @@ That would imply that in the mapping $M'$, tails of $\vv{\bm{\bow aaa}}$ and $\v
 
 \begin{multline*}
 tails(\vv{\bm{\bow aaa}}) = (\vv{\bm{\bow aaa}}\eow, \bm{aba}), (\vv{\bm{\bow aaa}}a\eow, \bm{aba}a), (\vv{\bm{\bow aaa}}aa\eow, \bm{aba}ba) \dots~ =  \\
- \qquad\qquad\qquad\qquad\quad \shoveleft{(\eow, \epsilon), (a\eow, a), (aa\eow, ba) \dots}
+ \qquad\qquad\qquad\qquad\quad \shoveleft{(\eow, \varepsilon), (a\eow, a), (aa\eow, ba) \dots}
 \end{multline*}
 
 \begin{multline*}
 tails(\vv{\bm{\bow aaaaa}}) = \\
 \qquad \shoveleft{(\vv{\bm{\bow aaaaa}}\eow, \bm{ababa}), (\vv{\bm{\bow aaaaa}}a\eow, \bm{ababa}a), (\vv{\bm{\bow aaaaa}}aa\eow, \bm{ababa}ba) \dots~ =}  \\
- \qquad\qquad\qquad\qquad\quad \shoveleft{(\eow, \epsilon), (a\eow, a), (aa\eow, ba) \dots}
+ \qquad\qquad\qquad\qquad\quad \shoveleft{(\eow, \varepsilon), (a\eow, a), (aa\eow, ba) \dots}
 \end{multline*}
 
 Indeed, since their tails are the same, this shows that the mapping is OSL.
