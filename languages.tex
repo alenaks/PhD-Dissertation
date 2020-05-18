@@ -1,16 +1,20 @@
-In the previous chapter, I showed that different phonological and morphological phenomena can be modeled as subregular languages.
-Indeed, local processes can be expressed with strictly local (SL) grammars and long-distance processes with strictly piecewise (SP) grammars.
-If a long-distance process uses blockers (e.g., opaque vowels in vowel harmony), then we use tier-based strictly local (TSL) grammars.
-If the language shows multiple long-distance processes, then we may also need  multi-tier strictly local (MTSL) grammars.
+Previously, I showed that different phonological and morphological phenomena can be modeled as subregular languages.
+In this chapter, I demonstrate the automatic extraction of subregular languages from linguistic data.
+To do so, I employ four subregular language classes that express
+generalizations, including local and long-distance dependencies such as attested and unattested harmony systems with and without blockers, word-final devoicing, and even suprasegmental patterns.
+
+Indeed, local patterns can be expressed with strictly local (SL) grammars and long-distance phenomena with strictly piecewise (SP) grammars.
+If a long-distance pattern uses blockers (e.g., opaque vowels in vowel harmony), then we use tier-based strictly local (TSL) grammars.
+If the language exhibits multiple long-distance phenomena, then we may also need  multi-tier strictly local (MTSL) grammars.
 This perspective on morphotactics and phonotactics also rules out typologically unattested patterns such as first-last harmony, majority harmony, or embedded circumfixation.
 
-In this chapter, I discuss algorithms which extract SL, SP, TSL and MTSL grammars from the data.
+In what follows, I discuss algorithms which extract SL, SP, TSL and MTSL grammars from the data.
 Apart from the training sample, these algorithms require knowing the class of the target grammar, and the locality window of that grammar, i.e.\ the length of substructures with which it operates.
 In other words, we need to know the formal complexity of the target language in order to learn it efficiently using subregular learning algorithms.
 Given a sufficient and representative training sample and proper specifications of the target grammar, the subregular learners discover the pattern in polynomial time and data.
 
 I start by introducing the datasets that I will use throughout the chapter to perform the learning experiments.
-These datasets vary from automatically generated artificial languages to real wordlists exemplifying concrete linguistic phenomena, such as word-final devoicing in German, vowel harmony in Turkish, and others.
+These datasets vary from automatically generated artificial languages to real wordlists exemplifying attested linguistic dependencies, such as word-final devoicing in German, vowel harmony in Turkish, and others.
 I then use these datasets as training samples for the subregular learners, discuss the obtained grammars, and automatically evaluate the predictions of those grammars based on the well-formedness of the strings they generate.
 At the end of the chapter, I provide a table that summarizes the results of the learning experiments.
 
@@ -20,7 +24,8 @@ As of now, I have not implemented statistical versions of these algorithms, or a
 
 
 The subregular learners, scanners and sample generators are available as a module of my Python package \emph{SigmaPie} \href{https://pypi.org/project/SigmaPie/}{\faCube} \citep{sigmapie}.
-All of the code and datasets are available on GitHub \href{https://github.com/alenaks/subregular-experiments}{\faGithub} \citep{GHsubex}.
+The code of the toolkit is provided in Appendix A.
+It is also available on GitHub, as well as the code behind the implementations of the further discussed learning experiments \href{https://github.com/alenaks/subregular-experiments}{\faGithub} \citep{GHsubex}.
 
 
 \section{The experimental setup}
@@ -35,11 +40,11 @@ If the learning experiment was unsuccessful, we can always look inside those alg
 
 The \textbf{experimental pipeline} involved $3$ steps: learning, generation, and evaluation.
 \textbf{Learning} included automatic extraction of subregular grammars from the given training samples.
-I then used those extracted grammars to \textbf{generate} samples of strings.%
-\footnote{The functionality of subregular generators comes from the \emph{SigmaPie} toolkit.}
+I then used those extracted grammars to \textbf{generate} samples of strings.
 Finally, during the \textbf{evaluation} step, I computed the percentage of the strings from the automatically generated datasets that are well-formed with respect to the target grammars.
 
-Regardless of what can be considered a general practice, I am \emph{not} testing the performance of the grammars on the held out parts of the training sample to detect the cases in which the learner ``overgeneralized'' the pattern.
+Regardless of what can be considered a general practice, I am \emph{not} testing the performance of the grammars on the held out parts of the training sample.
+That approach would not let us to detect the cases in which the learner ``overgeneralized'' the pattern.
 For example, some learning experiments resulted in the learner incorrectly converging on the empty negative grammar: such a learner simply assumed that "anything goes".
 Trivially, it will score $100$\% on all the held-out data.
 Only by looking at the predictions of the grammar it is possible to see if the learner generalized the language of the training sample.
@@ -53,8 +58,10 @@ Only negative grammars were employed for the experiments due to the succinctness
 The real data used for the experiments comes from German, Finnish and Turkish.
 The German dataset is a wordlist for wordgames posted by \texttt{enz} \href{https://github.com/enz/german-wordlist}{\faGithub} \citep{GHenz}.
 The Finnish data is taken from a collection of wordlists scraped by \texttt{douglasbuzatto} \href{https://github.com/douglasbuzatto/WordLists}{\faGithub} \citep{GHdouglasbuzatto}.
-The collection of Turkish words was uploaded by \cite{HarrisonEtAl2004} from Swarthmore College as a part of his project \emph{The Vowel Harmony Calculator} \href{http://www.swarthmore.edu/SocSci/harmony/public_html/dummyresults.html}{\faChain}.
+The collection of Turkish words was uploaded by \cite{HarrisonEtAl2004} as a part of his project \emph{The Vowel Harmony Calculator} \href{http://www.swarthmore.edu/SocSci/harmony/public_html/dummyresults.html}{\faChain}.
 Due to the non-probabilistic nature of the algorithms, I removed the data items that violate the target generalizations, such as disharmonic stems.
+This is necessary to evaluate the structural properties of the learners.
+In the future, the availability of the probabilistic subregular learners will allow to process disharmonic stems as well.
 
 The target patterns exemplified by natural language datasets involved three levels of abstraction.
 The \emph{raw representations} contained the strings from the wordlists; it allows us to explore the problems that the learner faces when it is given realistic data.
@@ -73,7 +80,7 @@ I used $5$ artificial language generators for the experiments in this and the fo
 In all of these generators, the number of strings (the default value is $10$) and the length of those strings (the default value is also $10$) can be defined a priori.
 
 
-The \textbf{Simple Harmony Generator} implements long-distance processes such as vowel harmony and consonant harmony.
+The \textbf{Simple Harmony Generator} encodes and generates samples demonstrating long-distance dependencies such as vowel harmony and consonant harmony.
 The generator lets us define several harmonic classes, where a \emph{harmonic class} is a collection of elements that cannot co-occur within the same well-formed word of the language.
 For example, if there are two harmonic classes $A = \{a, o\}$ and $B = \{b, p\}$, the well-formed words of this language can use at most $1$ element of these class, unless a blocker intervenes.
 These classes $A$ and $B$ define strings such as \emph{apappa}, \emph{oppooo}, \emph{bbaab}, and so on; but the ones such as \emph{abbobb} cannot be produced by this generator.
@@ -155,7 +162,7 @@ print(german_wfd)
 
 The next step was to simplify German wordlist.
 Namely, for the phenomenon of the word-final devoicing, segments other than $\{b, p, g, k, d, t\}$ are not important, and therefore all of them can be simply masked as $a$.
-The rules of the masking are summarized in table \ref{germanmap1}.
+The rules of the masking are summarized in Table \ref{germanmap1}.
 Since none of the words were deleted during this step, the size of that sample was the same as before: $685,147$ words.
 
 \begin{table}[h!]
@@ -179,7 +186,7 @@ print(german_wfd_masked)
 
 Finally, the pattern can be simplified even further to only three classes of elements: voiced obstruents, voiceless obstruents, and items that are irrelevant for the word-final devoicing.
 Let us then refer to these classes as $b$, $p$ and $a$, respectively.
-The rules of this simplification for the German alphabet are presented in table \ref{germanmap2}.
+The rules of this simplification for the German alphabet are presented in Table \ref{germanmap2}.
 
 \begin{table}[h!]
 \begin{center}
@@ -193,7 +200,7 @@ a & $\leftarrow$ & a, \"a, c, e, f, h, i, j, l, m, n, o, \"o, q, r, s, u, \"u, v
 \label{germanmap2}
 \end{table}
 
-To generate such a pattern, I used the word-final devoicing generator previously discussed in section \ref{secartlang}.
+To generate such a pattern, I used the word-final devoicing generator previously discussed in Section \ref{secartlang}.
 Like this, I obtained a sample of $1,000$ strings that represent the target pattern abstractly.
 The length of every word of this sample is $10$ symbols.
 
@@ -237,7 +244,7 @@ print(finnish_harmony)
 \paragraph{Masked representation}
 
 Next, I created a dataset where every segment transparent for the Finnish vowel harmony was masked.
-The vowels \{\emph{\"a}, \emph{\"o}, \emph{y}, \emph{a}, \emph{o}, \emph{u}\} were left intact, whereas the other elements were rewritten as \emph{x}, see the table \ref{finnishmap1}.
+The vowels \{\emph{\"a}, \emph{\"o}, \emph{y}, \emph{a}, \emph{o}, \emph{u}\} were left intact, whereas the other elements were rewritten as \emph{x}, see the Table \ref{finnishmap1}.
 The obtained dataset also contains $250,805$ words.
 
 \begin{table}[h!]
@@ -260,8 +267,8 @@ print(finnish_harmony_simplified)
 \paragraph{Abstract representation}
 
 Lastly, I simplified the pattern even more by generalizing the harmonic and transparent elements of Finnish to three classes: $a$ for the class of front vowels, $o$ for the class of back vowels
-\footnote{Although $a$ and $o$ are both back vowels, this is just an abstraction to keep the alphabet as simple as possible.}
-, and $x$ for all other elements that make this dependency long-distant, see table \ref{finnishmap2}.
+\footnote{$a$ and $o$ are both back vowels, this is just an abstraction to keep the alphabet as simple as possible.}
+, and $x$ for all other elements that make this dependency long-distant, see Table \ref{finnishmap2}.
 
 \begin{table}[h!]
 \begin{center}
@@ -275,7 +282,7 @@ x & $\leftarrow$ & b, c, d, e, f, g, h, i, j, k, l, m, n, p, q, r, s, t, v, w, x
 \label{finnishmap2}
 \end{table}
 
-To generate artificial data, I used the harmonic generator discussed in \ref{secartlang}.
+To generate artificial data, I used the harmonic generator discussed in Section \ref{secartlang}.
 I defined a single harmonic class $A = \{a, o\}$ with $X = \{x\}$ representing the transparent elements.
 Any word was able to contain $x$, however, $a$ and $o$ could not co-occur within the same word.
 I generated a sample of $1,000$ words that were well-formed regarding the rules of this simplified vowel harmony.
@@ -296,7 +303,7 @@ Consider Assamese, where vowels regressively harmonize in the advanced tongue ro
 In the word \emph{p\textopeno l\textopeno x} `silt' all vowels are lax, however, when the tense suffix \emph{-uw\textturna} is applied to that stem, all the vowels become tense: \emph{poloxuw\textturna} `fertile land'.
 Nasals, as well as some other segments, block this long-distance spreading.
 In \emph{z\textopeno m\textopeno ni} `humorous', lax vowels precede the nasal \emph{n}, whereas the tense one follows it.
-Unfortunately, I found no available dataset exhibiting such a harmony.
+Unfortunately, I found no available dataset exhibiting a harmony of this type.
 However, patterns of this type are widespread among the languages of the world, so in this experiment, I model the blocking effect.
 
 \paragraph{Abstract representation}
@@ -405,7 +412,7 @@ print(turkish_harmony)
 \paragraph{Masked representation}
 
 At the next step, I masked all the symbols that are not relevant to the Turkish harmony.
-Namely, all the consonants are transparent, and therefore were substituted as $x$, whereas the vowels \{a, e, o, \"o, u, \"u, i, \textbari\} were left intact, see table \ref{turkishmap1}.
+Namely, all the consonants are transparent, and therefore were substituted as $x$, whereas the vowels \{a, e, o, \"o, u, \"u, i, \textbari\} were left intact, see Table \ref{turkishmap1}.
 The obtained dataset contains $14,434$ words as well.
 
 \begin{table}[h!]
@@ -453,7 +460,7 @@ To model this pattern, we need to imitate two harmonies: one affects vowels, and
 
 \paragraph{Abstract representation}
 
-The abstract representation of such harmonic pattern exhibits two harmonic classes, one of them includes vowels $\{a, o\}$, and another one includes consonants $\{b, p\}$, see table \ref{dhnbmap}.
+The abstract representation of such harmonic pattern exhibits two harmonic classes, one of them includes vowels $\{a, o\}$, and another one includes consonants $\{b, p\}$, see Table \ref{dhnbmap}.
 This language then allows for the words such as \emph{poppooo} and \emph{aaabba}, but not for the ones such as \emph{babboo} or \emph{opobp}.
 As previously, there are no transparent elements because vowels make the consonant harmony long-distant, and vise versa.
 
@@ -492,7 +499,7 @@ Although such a pattern, to the best of my knowledge, is unattested, it is a typ
 
 Let us build on the harmonic system discussed before, and add one modification to it: now, the consonant harmony can be blocked.
 The blocker is then represented as $t$, and it prohibits $b$ to be seen after itself.
-This blocker will not affect the simultaneous vowel harmony in any way, see table \ref{dhwbmap}.
+This blocker will not affect the simultaneous vowel harmony in any way, see Table \ref{dhwbmap}.
 Words such as \emph{abbabab}, \emph{abataapap} and \emph{oobobtoop} are well-formed regarding the rules of this harmony, but \emph{ababtab} or \emph{obbotppaap} are not.
 
 \begin{table}[h!]
@@ -564,9 +571,8 @@ print(first_last_data)
 
 In this section, I discuss the $9$ types of patterns that I modeled using automatically learned subregular grammars.
 This list exhausts the options for the modeling possibilities by SP, SL, TSL and MTSL grammars: every one of those phenomena can be represented by a different combination of those four subregular classes.
-For example, \emph{word-final devoicing} can be modeled by SL, TSL, and MTSL grammars; \emph{a single vowel harmony without blocking} can be expressed via SP, TSL, and MTSL grammars; \emph{tone plateauing} can only be generalized as SP, \emph{first-last harmony} cannot be modeled by either of them, etc.
-%Interestingly, the only languages that can be generated by all of these classes at the same time are closed under permutation (Thomas Graf, p.c.), it is not a property that natural languages have.
-The list of patterns and the corresponding grammars can be found in table \ref{explanglearn}.
+For example, word-final devoicing can be modeled by SL, TSL, and MTSL grammars; a single vowel harmony without blocking can be expressed via SP, TSL, and MTSL grammars; tone plateauing can only be generalized as SP, first-last harmony cannot be modeled by either of them, etc.
+The list of patterns and the corresponding grammars can be found in Table \ref{explanglearn}.
 
 \begin{table}[t!]
 \begin{center}
@@ -594,7 +600,7 @@ The list of patterns and the corresponding grammars can be found in table \ref{e
 
 Strictly local grammars express local generalizations by listing substrings that \emph{cannot} be present in well-formed words of their languages.
 In linguistics, they are employed to model local dependencies such as intervocalic voicing, consonant cluster assimilation, or others.
-In this section, I show that the SL inference algorithm is capable of automatically extracting the pattern of \emph{word-final devoicing} from the German dataset.
+In this section, I show that the SL inference algorithm is capable of automatically extracting the pattern of word-final devoicing from the German dataset.
 SL grammars cannot handle long-distance dependencies, and therefore their performance on harmonic datasets is extremely poor.
 
 
@@ -1049,7 +1055,7 @@ SP grammars, on the contrary, are not able to model local generalizations.
 They prohibit \emph{subsequences} and not \emph{substrings}: if a bigram $ab$ is prohibited, it means that $a$ cannot be followed by $b$ anywhere further in the string.
 For example, an SL language prohibiting $ab$ will rule out a word \emph{baa\textbf{ab}b} but will consider \emph{\textbf{a}ccc\textbf{b}} grammatical.
 However, an SP language with the same bigram listed in its grammar will rule out both words: in both of them, $a$ is followed by $b$.
-Therefore, in linguistics, SP models are used to model long-distance processes that do not exhibit a blocking effect, such as some cases of harmonies and unbounded tone plateauing.
+Therefore, in linguistics, SP models are used to model long-distance dependencies that do not exhibit a blocking effect, such as some cases of harmonies and unbounded tone plateauing.
 
 
 \subsection{SP learning algorithm}
@@ -1589,7 +1595,7 @@ Among the learners discussed so far, the TSL learner was the only one that was a
 In doing so, it achieved the accuracy of $100$\%.
 The learned grammar correctly excluded $x$ from the tier, and noticed that the blocker $f$ is crucial for this language.
 It prohibited disagreeing vowels adjacent on the tier; and if a blocker intervenes, the following vowel must not be $o$.
-Thus this grammar correctly rules out words such as \emph{ooxxfxxo} and \emph{ooxxxxa} since tiers of these strings contain the prohibited bigrams $fo$ and $oa$, correspondingly, see figure \ref{sgmnsge}.
+Thus this grammar correctly rules out words such as \emph{ooxxfxxo} and \emph{ooxxxxa} since tiers of these strings contain the prohibited bigrams $fo$ and $oa$, correspondingly, see Figure \ref{sgmnsge}.
 
 \begin{table}[h!]
 \centering
@@ -1801,7 +1807,7 @@ However, if there is more than one long-distant process affecting different sets
 \paragraph{Experiment 6: vowel harmony and consonant harmony without blocking}
 
 It is impossible to model independent vowel and consonant harmonies using TSL grammars.
-Vowels and consonants are involved in different long-distant processes, and therefore neither of them can be removed from the tier.
+Vowels and consonants are involved in different long-distant phenomena, and therefore neither of them can be removed from the tier.
 However, the presence of consonants does not allow us to represent vowels in a tier-based local fashion, and vice versa.
 Therefore, neither vowel nor consonant harmony can be enforced: only $74$\% of the words generated by such grammar are well-formed.
 This model is the same as its SL counterpart.
@@ -2007,7 +2013,7 @@ The condition of the if-statement needs to also be adjusted to accommodate for l
 
 \subsection{Successful experiments}
 
-In this subsection, I show that MTSL grammars can be used to successfully model all of the discussed types of local processes and long-distant harmonies.
+In this subsection, I show that MTSL grammars can be used to successfully model all of the discussed types of local and long-distant dependencies.
 Even when challenged with the raw data of German, Finnish, and Turkish, the MTSL learner extracts the corresponding MTSL grammars with the impressive accuracies of $100$\%, $100$\%, and $95$\%, correspondingly.
 The patterns of unbounded tone plateauing and the first-last harmony are not MTSL in their nature, and therefore cannot be learned using the MTSL inference algorithm.
 
@@ -2485,7 +2491,7 @@ The experiment using the non-MTSL pattern of unbounded tone plateauing is not di
 Finally, as expected, the first-last harmony is not learnable by either of the discussed subregular learners.
 
 
-However, as explained before in section \ref{mtsllearner}, there is a type of MTSL grammars that the current learner cannot induce due to its tier-per-bigram assumption.
+However, as explained before in Section \ref{mtsllearner}, there is a type of MTSL grammars that the current learner cannot induce due to its tier-per-bigram assumption.
 Namely, it cannot learn an MTSL grammar where one bigram belongs to two different tiers.
 Interestingly, according to \cite{AksenovaDeshmukh2018}, languages with multiple harmonies typologically lack this type of tier configuration.
 Therefore this learner could be more efficient for language-related tasks then the one that would investigate typologically unattested possibilities.
@@ -2499,12 +2505,15 @@ Namely, I explored the performance of strictly piecewise (SP), strictly local (S
 The experiments ranged from ones that were using artificially generated samples imitating linguistic patterns, to extracting grammars from raw language data.
 Artificial language learning shows if the modeling of those generalizations is possible \emph{conceptually}, whereas using raw data shows what is possible \emph{in practice}.
 
-The discussed learning experiments targeted following patterns: word-final devoicing, a single vowel harmony pattern with/without a blocking effect, several vowel harmonies with/without a blocking effect, independent vowel and consonant harmonies with/without blocking effect, and the unbounded tone plateauing.
+The conducted learning experiments confirmed the learning expectations for the artificial datasets, showing how different linguistic patterns are captured by subregular models.
+However, the performance of the learners on raw natural language data was worse, and in some cases, a more powerful model was required to capture a pattern of lower complexity.
+
+The experiments targeted following patterns: word-final devoicing, a single vowel harmony pattern with/without a blocking effect, several vowel harmonies with/without a blocking effect, independent vowel and consonant harmonies with/without blocking effect, and the unbounded tone plateauing.
 Additionally, I also challenged the learners with a typologically unattested pattern of first-last harmony.
 Every one among these $9$ patterns can be theoretically modeled using different set of subregular classes.
 Namely, word-final devoicing can be captured by SL, TSL, and MTSL grammars; several vowel harmonies with blocking are expressible by TSL and MTSL grammars, and the unbounded tone plateauing can only be encoded using a SP grammar.
 Finally, none of the subregular languages should be able to capture the first-last harmony since it is not SL, SP, TSL, or MTSL.
-In \ref{explanglearn2}, I repeat the table with the expected results of the language learning experiments that was previously shown in \ref{explanglearn}.
+In \ref{explanglearn2}, I repeat the table with the expected results of the language learning experiments that was previously shown in Table \ref{explanglearn}.
 
 
 \begin{table}[b!]
@@ -2524,7 +2533,7 @@ In \ref{explanglearn2}, I repeat the table with the expected results of the lang
 \textit{first-last harmony}                              & \cellcolor{gray!50}\faTimes                                &\cellcolor{gray!50} \faTimes                                &\cellcolor{gray!50} \faTimes                                 & \cellcolor{gray!50}\faTimes                                  \\ \hline
 \end{tabular}}
 \end{center}
-\caption{The expected results of the language learning experiments; repeated from the end of the section 3.1.4.}
+\caption{The expected results of the language learning experiments; repeated as in Section 3.1.4.}
 \label{explanglearn2}
 \end{table}
 
@@ -2534,7 +2543,7 @@ They range from the automatically generated artificial languages, to simplified 
 During the \emph{learning} step, a grammar was obtained by the inference algorithm based on the provided training data.
 Then I \emph{generated} a large set of strings that are grammatical according to the extracted grammar.
 Finally, I computed the number of strings of the generated sample that are well-formed according to the target generalization thus numerically \emph{evaluating} the performance of the model.
-The table \ref{languagesresults} summarizes how the automatically extracted subregular grammars performed on those experiments.
+Table \ref{languagesresults} summarizes how the automatically extracted subregular grammars performed on those experiments.
 
 
 {\small
@@ -2591,10 +2600,11 @@ Artificial \emph{(5,000)}                         &     \cellcolor{red!85!black}
 \label{languagesresults}
 \end{table}}
 
-There are two important results of this work.
-First, every artificial language learning experiment that was predicted to be successful given some particular subregular model was, in fact, successful.
+There are several implications of this work.
+I show that every artificial language learning experiment that was predicted to be successful given some particular subregular model was, in fact, successful.
 It confirms that the implemented algorithms are indeed implemented correctly, and therefore can be reliably used in future.
-Second, the MTSL learner performed extremely well on raw language data: it learned German word-final devoicing and Finnish harmonic system from a raw data with an accuracy of $100$\%, and scored $95$\% on a challenge of learning Turkish harmony.
+Also, the MTSL learner performed extremely well on raw language data: it learned German word-final devoicing and Finnish harmonic system from a raw data with an accuracy of $100$\%, and scored $95$\% on a challenge of learning Turkish harmony.
+However, a TSL learner was not able to learn a TSL pattern from a realistic data due to the expectations of the algorithm.
 
 However, any non-perfect score implies that the pattern was not acquired.
 Indeed, due to the non-probabilistic nature of the learners, results below $100$\% indicate the presence of ill-formed words generated by the learned grammar, showing that the learner did not converge.
@@ -2603,20 +2613,30 @@ The current metric only shows the overall performance of the model, without focu
 
 For example, the SP learner scores $89$\% on the German dataset. 
 Given that the exemplified phenomenon of the word-final devoicing is not SP, this result is quite surprising.
-Looking into the learned grammar shows that the learner is \emph{overgenerating:} indeed, it observed voiced obstruents indirectly followed by the word-final marker, and thus assumed that such configuration is grammatical. 
-SP grammars do not differentiate between long-distance and local dependencies, and therefore after observing a word such as $\bow aba\eow$ it assumed that all its subsequences are also grammatical.
+Transparency of the subregular learners allowed to look inside the algorithm and see the reason behind this surprisingly good performance. 
+It showed that the learner is \emph{overgenerating:} indeed, it observed voiced obstruents indirectly followed by the word-final marker, and thus assumed that such configuration is grammatical.
+If we limited our attention to only generated strings that end in an obstruent, it would become clear that the learned grammar generates voiced final obstruents as frequently as the voiceless ones.
+The accuracy scores can be misleading without the analysis of the errors, and the transparency of the subregular grammars allows us to see the performance of the grammars behind-the-scenes.
+
+The experiments also confirmed that SP grammars do not differentiate between long-distance and local dependencies, and therefore after observing a word such as $\bow aba\eow$ it assumed that all its subsequences are also grammatical.
 Indeed, it results in allowing words such as $\bow ab\eow$ that violate the rule.
 The score is relatively high only due to a low probability for a word to end with a voiced obstruent: among $30$ German segments, only $5$ of them are voiced obstruents.
 This type of problem is caused by the overgeneration that arises in some of the learning experiments.
 
 Another issue -- \emph{overfitting} -- emerges when the model represents the training data but fails to generalize beyond it.
 Although further research is needed, the results suggest that it is indeed the case with the MTSL grammars capturing phenomena such as Turkish vowel harmony.
-Theoretically, we know that this pattern, as well as Finnish harmony, is TSL, i.e.\ requires just a single tier.
-However, the learned MTSL grammar extracts $266$ tiers, and it shows a high probability of the overfitting.
-Further work is needed to designing the appropriate metrics for subregular models evaluations that would take the distinction between overgeneration and overfitting into account.
+Theoretically, we know that this pattern, as well as the pattern of Finnish harmony, is TSL, i.e.\ requires just a single tier.
+However, the learned MTSL grammar extracts $266$ tiers instead.
+This shows that the marvelous performance of the MTSL grammars is not due to a deep understanding of the pattern, but rather because of the memorized configurations of tiers observed during the training.
 
 
-As discussed in Section 2.4, the learners can be greatly improved by introduction of linguistic notions such as natural classes and features.
+Although both Finnish and Turkish harmony is TSL, the TSL learner failed to extract the corresponding grammar.
+This is due to a problem of \emph{combinatorial explosion:} the TSL algorithm assumes that missing combinations always convey meaningful information about which sounds do or do not matter for the dependency.
+As a result, these algorithms are misled by accidental gaps in the data.
+Improving the subregular learning algorithms can help to overcome this issue.
+
+
+Both the experimental pipeline and the learning algorithms can be greatly improved by introduction of linguistic notions such as natural classes and features, see Section 2.4.
 It can help to learn harmonies more efficiently: instead of considering segments individually, the feature-based representation helps to detect the common behavior of segments bearing a particular feature.
 Alternatively, a greater accuracy can be achieved by combining the learners together, as suggested in \cite{Heinz10ldp,HeinzIdsardi13}.
 
