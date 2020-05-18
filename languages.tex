@@ -1,7 +1,6 @@
 Previously, I showed that different phonological and morphological phenomena can be modeled as subregular languages.
 In this chapter, I demonstrate the automatic extraction of subregular languages from linguistic data.
-To do so, I employ four subregular language classes that express
-generalizations, including local and long-distance dependencies such as attested and unattested harmony systems with and without blockers, word-final devoicing, and even suprasegmental patterns.
+To do so, I employ four subregular language classes that express generalizations, including local and long-distance dependencies such as attested and unattested harmony systems with and without blockers, word-final devoicing, and even suprasegmental patterns.
 
 Indeed, local patterns can be expressed with strictly local (SL) grammars and long-distance phenomena with strictly piecewise (SP) grammars.
 If a long-distance pattern uses blockers (e.g., opaque vowels in vowel harmony), then we use tier-based strictly local (TSL) grammars.
@@ -45,7 +44,7 @@ Finally, during the \textbf{evaluation} step, I computed the percentage of the s
 
 Regardless of what can be considered a general practice, I am \emph{not} testing the performance of the grammars on the held out parts of the training sample.
 That approach would not let us to detect the cases in which the learner ``overgeneralized'' the pattern.
-For example, some learning experiments resulted in the learner incorrectly converging on the empty negative grammar: such a learner simply assumed that "anything goes".
+For example, some learning experiments resulted in the learner incorrectly converging on the empty negative grammar: such a learner simply assumed that ``anything goes''.
 Trivially, it will score $100$\% on all the held-out data.
 Only by looking at the predictions of the grammar it is possible to see if the learner generalized the language of the training sample.
 

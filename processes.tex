@@ -6,7 +6,7 @@ Subsequential transducers encode subsequential transformations: they read the in
 Thus, automatically extracting subsequential transducers from data allows to computationally model natural language processes.
 The learning algorithms analyze the provided pairs of underlying representations (UR) and surface forms (SF), therefore inducing the changes applied to the URs.
 
-In his chapter, I explore the extraction of patterns that occur in natural languages using a popular transduction learning algorithm OSTIA \citep{OncinaEtAl1993}.
+In his chapter, I explore the automatic extraction of linguistic patterns using a well-known transduction learning algorithm OSTIA \citep{OncinaEtAl1993}.
 Previously, \cite{GildeaJurafsky1996} showed that a corpus of English pronunciations was not enough for OSTIA to generalize the rule of English flapping.
 However, they further proceeded to test modified versions of the algorithm on the same corpus yielding improved accuracy.
 My aim here is to explore what generalizations are possible to model, and which ones cannot be extracted given the current version of the learner.
@@ -20,7 +20,7 @@ Discussed in \cite{OncinaEtAl1993} and \cite{DeLaHiguera2010}, this algorithm in
 It identifies any subsequential function in the limit.
 In other words, given a finite sample of pairs of strings before and after the application of some rule, it extracts a subsequential transducer representing that rule.
 The property of \emph{the identification in the limit} means that the learner would need a \emph{finite} number of such pairs to induce the target machine.
-Below I discuss the main steps of this algorithm in \ref{pipelinesec}, and then present a walk-through of examples in \ref{exam1} and \ref{exam2}, one successful and one unsuccessful.
+Below I discuss the main steps of this algorithm in Section~\ref{pipelinesec}, and then present a walk-through of examples in Sections~\ref{exam1} and \ref{exam2}, one successful and one unsuccessful.
 
 \subsection{The pipeline}
 \label{pipelinesec}
@@ -30,10 +30,8 @@ The algorithm consists of two main parts: creating a representation of data as a
 The structuring step includes building a PTT for the input sample and making that PTT onward.
 Folding sub-trees into one another results in pairs of states being \emph{merged} into a single state.
 For the pseudocode of the algorithm, refer to \cite{OncinaEtAl1993} and \cite{DeLaHiguera2010}.
-%\footnote{Note that on page $382$, line $11$ of the function \texttt{OSTIA-FOLD}, \citeauthor{DeLaHiguera2010} gives an incorrect condition for returning \texttt{false}.
-%It must be $\tau_1(q, a) \not\in \textrm{pref}(\tau_1(q', a))$ instead of $\tau_1(q, a) \neq \tau_1(q', a)$, confirm as well in \citep{OncinaEtAl1993}.}
-The implementation of OSTIA which I used to obtain the results is a part of the SigmaPie toolkit \href{https://github.com/alenaks/SigmaPie}{\faGithub} \citep{GHsigmapie}, and the discussion of that implementation is available on GitHub \href{https://github.com/alenaks/OSTIA/blob/master/ostia.ipynb}{\faGithub} \citep{GHostia}.
-The main steps are presented in figure \ref{ostiamainsteps}.
+The implementation of OSTIA which I used to obtain the results is a part of the \emph{SigmaPie} package \href{https://github.com/alenaks/SigmaPie}{\faGithub} \citep{GHsigmapie}, and the discussion of that implementation is available on GitHub \href{https://github.com/alenaks/OSTIA/blob/master/ostia.ipynb}{\faGithub} \citep{GHostia}.
+The main steps are presented in Figure \ref{ostiamainsteps}.
 
 \begin{figure}[h!] 
 \centering
@@ -84,7 +82,7 @@ In such a way, the training sample provided to OSTIA is represented as a PTT.
 
 The outputs of the PTT are then modified to be \emph{onward}: such a PTT outputs translations as early as possible.
 During this step, common prefixes of state outputs are pushed closer to the initial state.
-For example, assume that the intermediate state of the PTT is the one as pictured in \ref{onwardgfsts} on the left side, with the onward version of that PTT on the right side.
+For example, assume that the intermediate state of the PTT is the one as pictured in Figure \ref{onwardgfsts} on the left side, with the onward version of that PTT on the right side.
 In the input PPT, the state output of the state $q_a$ is $1$, and the translations on all edges coming out of $q_a$ ($q_a\xrightarrow{\text{a:10}}q_{aa}$ and $q_a\xrightarrow{\text{b:11}}q_{ab}$) also contain $1$ as their prefix.
 Therefore, this prefix can be removed from the state output and transitions, and be introduced in the transducer earlier, namely, on the transition incoming into the state $q_a$.
 Onwarding starts from the \emph{leaves} of the PTT (the nodes that do not have any outcoming arcs), and percolates to the initial state $q_\varepsilon$.
@@ -173,6 +171,7 @@ In such a way, OSTIA constructs a subsequential FST that generalizes the mapping
 Note, that as well as the subregular learning algorithms discussed earlier in Chapter $3$, OSTIA requires a sample of only positive data.%
 \footnote{The algorithmic complexity of OSTIA is $\mathcal{O}(n^3(m + \mid\Sigma\mid) + nm\mid\Sigma\mid)$, where $n$ is the sum of the input string lengths, $m$ is the length of the longest output string, and $\Sigma$ is the input alphabet \citep{DeLaHiguera2010}.}
 The next subsection presents the inference steps of this algorithm given a concrete example.
+Although there are several versions of OSTIA in the literature, the version I use here mostly follows \cite{DeLaHiguera2010}; this exact version is implemented in \emph{SigmaPie}
 
 
 
@@ -785,7 +784,7 @@ For example, the only case when a tier-based strictly local grammar can capture 
 Therefore, $2$ of the explored datasets present this type of a harmonic system, with and without a blocking effect.
 
 \paragraph{Unbounded lookahead}
-In subsection \ref{exam2}, I showed that processes that require an unbounded lookahead are not subsequential, and therefore cannot be learned by OSTIA.
+In Subsection \ref{exam2}, I showed that processes that require an unbounded lookahead are not subsequential, and therefore cannot be learned by OSTIA.
 Therefore, I use $2$ automatically generated datasets that exhibit circumambient patterns, and show that they cannot be learned by a subsequential learner.
 
 \paragraph{Typologically attested}
@@ -875,7 +874,7 @@ In such a machine, the first state corresponds to the state of not observing $b$
 If $a$ or $p$ follow the memorized $b$, that $b$ is outputted together with $a$ or $p$.
 If another $b$ follows a $b$, only one $b$ is written.
 If $b$ is a final character of the input sequence, $p$ is written instead by the state output of $q_{b}$.
-The obtained machine exactly corresponds to the target generalization, see figure \ref{exp1fst}.
+The obtained machine exactly corresponds to the target generalization, see Figure \ref{exp1fst}.
 
 
 \begin{figure}[h!] 
@@ -913,7 +912,7 @@ This encoding defines pairs such as \emph{(axAxxAAxx, axaxxaaxx)} and \emph{(xxo
 
 OSTIA induces the FST that correctly generalizes the pattern, therefore, scoring $100$\% on both testing samples.
 The inferred FST has $4$ states and $14$ transitions in-between them.
-It is depicted in figure \ref{exp2fst}: note, that this machine is not minimal, i.e.\ there are states that do not express any information significant for the rule of harmony.
+It is depicted in Figure \ref{exp2fst}: note, that this machine is not minimal, i.e.\ there are states that do not express any information significant for the rule of harmony.
 For example, $q_{x}$ and $q_{xx}$ only keep track of one or two $x$.
 After $a$ was observed and written in the translation, the machine moves to the state $q_{a}$ and any $A$ from the input side is written as $a$ on the output side.
 Instead, observing $o$ keeps the FST in the initial state $q_{e}$, and any following $A$ is then re-written as $o$.
@@ -1001,9 +1000,9 @@ The accuracy falls when the length of the testing sample is increased to $15$-$2
 
 
 The obtained machine is not correct since some of the surface forms that it predicts are wrong.
-However, the machine encoding the target generalization can be represented as a simple FST with $3$ states, see figure \ref{exp2fstrr} for the expected result.
+However, the machine encoding the target generalization can be represented as a simple FST with $3$ states, see Figure \ref{exp2fstrr} for the expected result.
 It raises a question of what obstructed the inference of that machine, and why it happened in any consecutive experiment targeting a harmonic system involving a blocking effect.
-I leave this issue aside for now, and come back to it further in the very end of the section 4.2.13.
+I leave this issue aside for now, and come back to it further in the very end of Section 4.2.13.
 
 \begin{figure}[h!] 
 \centering
@@ -1069,7 +1068,7 @@ In both cases, none of the forms predicted by the FST were disharmonic.
 \caption{Results of OSTIA learning several vowel harmonies without blocking.}
 \end{table}
 
-Interestingly, the learned machine has $37$ states, whereas smaller versions can easily be constructed, see figure \ref{exp4rests}.
+Interestingly, the learned machine has $37$ states, whereas smaller versions can easily be constructed, see Figure \ref{exp4rests}.
 It requires additional investigation to understand the conditions that were not satisfied during OSTIA execution, therefore, yielding the machine with a greater number of states than possible.
 
 \begin{figure}[h!] 
@@ -1208,7 +1207,7 @@ Notice, that so far, the performance of OSTIA is $100$\% in every case when harm
 \caption{Results of OSTIA learning vowel and consonant harmonies without blocking.}
 \end{table}
 
-The inferred FST is visualized in figure \ref{exp6fst}.
+The inferred FST is visualized in Figure \ref{exp6fst}.
 It has $4$ states, and every state corresponds to a type of vowel and consonant in a stem.
 In particular, $q_\varepsilon$ corresponds to stems where the vowel and consonant values are $a$ and $p$; $q_o$ corresponds to $o$ and $p$; $q_b$ to $a$ and $b$; and, finally, $q_{ob}$ encodes stems with $o$ and $b$.
 
@@ -1282,7 +1281,7 @@ It goes along with the previous results showing that OSTIA fails to generalize a
 
 Now, consider a circumambient pattern of \emph{unbounded tone plateauing} (UTP).
 This pattern is observed in some Niger-Congo languages such as Luganda, where all low tones (L) are realized as high (H) if they are surrounded by high tones.
-As section \ref{exam2} shows, that pattern is not learnable by OSTIA since circumambient dependencies require an unbounded lookahead, and therefore cannot be expressed as subsequential transducers \citep{Jardine2016}.
+As Section \ref{exam2} shows, that pattern is not learnable by OSTIA since circumambient dependencies require an unbounded lookahead, and therefore cannot be expressed as subsequential transducers \citep{Jardine2016}.
 
 \paragraph{Encoding}
 This process involves low tones ($L$) changing their value to high ($H$) if they are surrounded by high tones.
@@ -1434,28 +1433,20 @@ Patterns like this are not subsequential.
 
 \subsection{Summary of the results}
 
-In this section, I explored automatic extraction of different types of harmonic or other assimilation processes, both attested and non-attested in natural languages.
-These patterns were word-final devoicing, single and several vowel harmonies with and without blocking, independent vowel and consonant harmonies with and without blocking, unbounded tone plateauing, and different kinds of first-last harmony.
-
-
-In the previous chapter I evaluated how learners acquire the well-formedness conditions imposed on the given training sample.
-Here, I discuss learning the observed \emph{transformations} using the OSTIA algorithm.
+Here, I explored automatic extraction of different types of harmonic or other assimilation processes, both attested and non-attested in natural languages.
+These patterns were word-final devoicing, single and several vowel harmonies with and without blocking, independent vowel and consonant harmonies, unbounded tone plateauing, and different kinds of first-last harmony.
+I discuss how to learn the mappings representing the listed above phenomena automatically, namely, using the OSTIA algorithm.
 The training sample then consists of pairs of examples, where the first element of the pair stands for the underlying representation, and the second element is the corresponding surface form.
-Given such automatically generated sets of examples (see the code on GitHub \href{https://github.com/alenaks/subregular-experiments}{\faGithub} \citep{GHsubex}), I explored if OSTIA is capable of extracting the generalized rule from it.
+Given such automatically generated sets of examples, I explored if OSTIA is capable of extracting the generalized rule from it.
+The code of the experiments is available on GitHub \href{https://github.com/alenaks/subregular-experiments}{\faGithub} \citep{GHsubex}.
 
 
-As the first step, I generated the training data using the extension of the codebase explained in the previous chapter in 3.1.3.
+As the first step, I generated the training data using the extension of the codebase explained in Section~ 3.1.3.
 Then, I provided those pairs as a training sample to OSTIA.
 To test the performance of the learned FST, I generated another set of pairs and provided the left sides of those pairs as input to that FST.
 The accuracy of the learned model is the percentage of times the FST outputted the same surface form as the right-hand side of the generated test pair.
 I tested the obtained model on two types of test samples: in the first test sample, the strings are of the same length as in the training sample, and in the second one, they are approximately twice as long.
 The first test sample evaluates the ``baseline'' performance of the learned models, while the second one uses longer strings to see how well the pattern was generalized.
-
-%I will reiterate the importance of the concrete implementation of OSTIA for the obtained results, already discussed in section \ref{learningexperiments}.
-%In this particular implementation, I followed the core architecture outlined by \cite{DeLaHiguera2010}, with the pushback condition in line with \cite{OncinaEtAl1993}.
-%Therefore to have a full picture, it is important to conduct similar experiments%
-% using other possible versions of OSTIA.
-
 
 \begin{table}[h!]
 \centering
@@ -1493,7 +1484,7 @@ Theoretically, this can be caused by 3 different reasons: the inability of the a
 The algorithm behind OSTIA is proven to be correct by \cite{OncinaEtAl1993}.
 The average error was not decreasing with the increased number of the training examples, and that shows that the problem is not rooted in the absence of some pairs of examples.
 It only leaves one source of the issue, namely, the concrete implementation of the algorithm.
-Indeed, as I discuss in the beginning of the section \ref{learningexperiments}, different pseudocodes of OSTIA have different conditions behind the activation of the pushback module.
+Indeed, as I discuss in the beginning of Section \ref{learningexperiments}, different pseudocodes of OSTIA have different conditions behind the activation of the pushback module.
 In future work, re-implementing OSTIA with different versions of that condition is necessary to find the concrete implementation that can learn the full class of subsequential functions in practice%
 \footnote{For example, one can attempt the pushback and fold of the states $q_a$ and $a_b$ if the outputs of the transitions with the same input symbol originating in those states have a non-empty common prefix.
 Preliminary results show that OSTIA implementing this condition is capable of learning the blocking effect; however, it does not perform well on local processes.}.
@@ -1588,7 +1579,7 @@ Some of these FSTs output the translation \emph{seen} as soon as they read $s$, 
 However, if it is known in advance that some of the outputs can be fixed, the number of such $4$-state FSTs processing \emph{(sim, seen)} decreases significantly.
 For example, if the output of the input symbol $s$ is fixed to $s$, only $10$ machines are possible.
 In all of them, a transition $q_\varepsilon\xrightarrow{\text{s:s}}q_{s}$ is fixed to only read and output $s$.
-The number of possible machines then decreases to $10$, see figure \ref{seemsin2}.
+The number of possible machines then decreases to $10$, see Figure \ref{seemsin2}.
 
 \begin{figure}[h!] 
 \centering
@@ -1649,7 +1640,7 @@ Both learners require some integer $k$ to be known a priori, and their first ste
 An enlarged set of experiments needs to be used when exploring SOSFIA, ISLFLA and OSLFIA.
 The expected result is that SOSFIA will learn all subsequential mappings (word final devoicing, all types of harmonies, and the ``simple'' case of vowel harmony).
 However, OSLFIA and ISLFLA cannot learn processes where a potentially unbounded number of segments can intervene in-between two agreeing elements, because such processes are neither ISL nor OSL \citep{ChandleeEtAl2015}.
-It would imply that those two learners only capture the word-final devoicing, and fail on all other experiments, see figure \ref{predictedoresults}.
+It would imply that those two learners only capture the word-final devoicing, and fail on all other experiments, see Figure \ref{predictedoresults}.
 Extending the list of the experiment by different local dependencies, such as metathesis, epenthesis, and deletion, would allow one to explore the practical capabilities of those learning algorithms better.
 
 
@@ -1731,7 +1722,7 @@ Then the transducer reads the input strings and saves all substrings of the corr
 If the transition was taken before, the algorithm intersects the set of substrings of the current translation with the set of saved candidates, therefore, leaving only the candidates that are consistent throughout the whole training sample.
 After the training data is processed, the algorithm builds a set of transducers based on the obtained guesses for every transition.
 
-For example, when the pair \emph{(ab, aab)} is provided as the input to the learner, two out of many guesses about the target FST would be either (1) outputting $ab$ if we read $b$ after an $a$, or (2) $a$ is translated to $aa$, and $b$ stays intact, see figure \ref{fig:two_opt}.
+For example, when the pair \emph{(ab, aab)} is provided as the input to the learner, two out of many guesses about the target FST would be either (1) outputting $ab$ if we read $b$ after an $a$, or (2) $a$ is translated to $aa$, and $b$ stays intact, see Figure \ref{fig:two_opt}.
 However, as soon as the training pair \emph{(a, aa)} is encountered, the first machine from Figure \ref{fig:two_opt} is rejected, leaving the second machine as the applicable candidate.
 
 \begin{figure}[h!] 
@@ -1777,19 +1768,25 @@ Namely, I summarized the main steps of the OSTIA algorithm, presented two walk-t
 The learning experiments targeted extraction of natural language-like patterns.
 The training samples exhibited in simplified ways such typologically attested processes as word-final devoicing, one or multiple harmonies with and without blocking effect, and unbounded tone plateauing.
 Additionally, OSTIA was presented with a dataset exemplifying the unattested pattern of first-last harmony.
-OSTIA successfully learned the generalization behind word-final devoicing, all harmonies without a blocking effect, and a ``simple'' version of first-last harmony.
-If the target pattern exhibited a blocking effect, however, it significantly decreased the accuracy of OSTIA.
-Finally and expectedly, the generalizations behind tone plateauing and the ``complex'' version of first-last harmony remained unlearned since they involve an unbounded lookahead, so these patterns are not subsequential.
-I provided the obtained FSTs where applicable, but that was not enough to explain the learning outcomes of some of the experiments.
 
 
-A lot of questions remain unanswered.
+Although the expected results of the learning experiments were mostly confirmed, there were some surprises.
+Indeed, OSTIA successfully learned the generalization behind word-final devoicing, all harmonies without a blocking effect, and a ``simple'' version of first-last harmony.
+Also, expectedly, the generalizations behind tone plateauing and the ``complex'' version of first-last harmony remained unlearned since they involve an unbounded lookahead, so these patterns are not subsequential.
+However, if the target pattern exhibited a blocking effect, it significantly decreased the accuracy of OSTIA.
+Throughout the chapter, I described and sometimes visualized the obtained FSTs, but more research is needed to explain the learning outcomes of some of the experiments.
+
+
+Several questions remain unanswered.
 Firstly, it is unclear what makes it impossible for OSTIA to learn even a simple case of harmony with a blocking effect.
+Interpreting the algorithmic steps and learning outcomes can help to explain such behavior.
 Second, it is also important to test OSTIA on non-length preserving processes and other phonological phenomena such as epenthesis, deletion, and metathesis.
 Finally, there are learners such as ISLFLA and OSLFIA that induce input and output-local functions \citep{ChandleeEtAl2014,ChandleeEtAl2015}, and their performance on natural language patterns needs to be evaluated as well.
 
 
-In this chapter, I discussed learning \emph{transformations} that capture processes which change underlying representations into the corresponding surface forms.
-Previously, chapter 3 discussed learners that are capable of modeling \emph{well-formedness conditions} imposed on languages.
-Following this line of research helps us to explore the ways to create computational models of language, therefore giving an opportunity for insights into how languages work.
+In this chapter, I discussed automatic learning subsequential transformations that capture processes that change underlying representations into the corresponding surface forms.
+This allows encoding various phonological and morphological processes, such as harmony, word-final devoicing, and others.
+The well-formedness conditions imposed by phonotactics and morphotactics on shapes of the allowed words can be captured by subregular languages, that can also be learned from data, as Chapter 3 shows.
+The results of these two chapters are preliminary, however, this meant to be a starting point for using tools such as \emph{SigmaPie} to experimentally test theoretical claims.
+This helps us to explore the ways to create computational models of language, and, in turn, it can give us insights into how languages work.
 
