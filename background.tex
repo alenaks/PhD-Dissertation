@@ -33,6 +33,7 @@ As it follows from the name itself, subregular grammars are a subset of the regu
 
 
 \subsection{Regular nature of natural language patterns}
+\label{regnatofnlpt}
 
 Consider a pattern of Russian compounding, where a morpheme \emph{-o-}%
 \footnote{This marker is also sometimes realized as \emph{-e-}.}
@@ -149,18 +150,19 @@ Nowadays, we usually use an extended version of the hierarchy that includes mild
 This hierarchy represents nested classes of formal languages aligned with respect to their expressive complexity.
 On the very top of the hierarchy, there are \textbf{recursively enumerable} languages.
 Those are the languages that can be physically computed, i.e.\ realized by a computer in the universe\footnote{The current definition is based on the physical Church-Turing thesis \citep{Church1936,Turing1937a,Turing1937b}.} \citep{Chomsky1956}.
-For example, a language $a^{n}$, where $n$ is a prime number, is recursively enumerable.
+An example of such a language contains all polynomial equations with integer coefficients that have a solution in the integers \citep{Goldberg2018}.
+Although such a language exists, there is no method of deterministically predicting if an equation has such a solution.
 Below, there are \textbf{context-sensitive} languages that recognize non-linear%
-\footnote{The non-linearity refers to the growth of the number of $a$: every following number is \emph{much} larger than the previous.}
- patterns such as $a^{2n}$, where $n$ is greater than $0$.
+\footnote{The non-linearity refers to the growth of the number of $a$: every following number is \emph{much} larger than the previous.
+For example, patterns such as $a^{2n}$, where $n$ is greater than $0$, are non-linear.}
+patterns, such as the language of primes \citep{HartmanisShank1968}.
 There are subclasses of context-sensitive languages which are a better fit for natural language syntax, such as \textbf{mildly context-sensitive} languages.
 They are a good fit for syntactic dependencies as they handle cross-serial dependencies such as some cases of copying; see \citep{Huybregts1984,Joshi1985,Shieber1985,Kallmeyer2010} discussing syntax, and \citep{Culy1985} about a context-sensitive pattern in morphology.
 The machine corresponding to \textbf{context-free} languages uses a stack of a potentially infinite size: in such a way, it recognizes patterns such as $a^{n}b^{n}$, \emph{``have as many $a$ as $b$''} \citep{HopcroftEtAl2006}.
 \textbf{Regular} languages are limited to the dependencies that can be recognized by an FSA \citep{HopcroftEtAl2006}.
 It is commonly assumed that morphology and phonology are regular \citep{Johnson1972,KaplanKay94,BeesleyKartunnen03,RoarkSproat2007}, and I will come back to this topic in the following paragraphs.
 Finally, at the very bottom of the hierarchy, one can see a class of \textbf{finite} languages that refer to a finite number of strings.
-Classes that are more complex than mildly context-sensitive dependencies are rarely discussed in connection with natural languages: they are too powerful.%
-\footnote{I am grateful to Jeff Heinz for supplying me with the examples of these formal languages.}
+Classes that are more complex than mildly context-sensitive dependencies are rarely discussed in connection with natural languages: they are too powerful.
 
 Finite-state models correspond to regular languages, and were introduced in $1940$s by \cite{McCullochPitts1943}.
 \cite{Chomsky1956}, however, theorized that this type of modeling does not seem to be suitable for natural languages, although in the following years his arguments were shown to be inconclusive, and the question about the regular nature of linguistic dependencies was reopened again.
@@ -1495,12 +1497,15 @@ Later, in chapter 3 of this dissertation, I discuss several subregular patterns 
 
 The previous section explored modeling of natural language well-formedness conditions using subregular languages.
 Here, I discuss formalizing and modeling \emph{transformations}, or rewrite rules, that apply to underlying representations and yield corresponding surface forms.
-Namely, I show that subsequential finite-state \emph{transducers} can be employed to model transformations, and discuss their sub-types.
-Subsequential mappings belong to a class of regular functions, and therefore subsequential functions are also subregular.
+Namely, I demonstrate that subsequential finite-state \emph{transducers} can be employed to model transformations, and discuss their sub-types.
+Subsequential mappings are a subclass of the rational mappings, which in turn are a limited kind of regular functions, which entails that subsequential functions are subregular, too.
+
 
 \subsection{Formalizing transformations}
 \label{FSTforburyat}
 
+
+Let us start with a concrete example of a rewrite rule in natural language phonology, and how it can be expressed with finite-state machinery.
 Earlier in Section 2.1.5, I discussed Buryat progressive vowel harmony in ATR and rounding.
 Vowels agree in these two features, while consonants and /i/ are transparent.
 While all harmonizing vowels are undergoers for the ATR agreement, high vowels \textupsilon~ and $u$ block the spreading of the rounding feature, thus prohibiting the appearance of \textopeno~ and $o$.
@@ -1550,15 +1555,16 @@ $H =
 
 \bigskip
 
-Previously, Section 2.1.1 introduced finite-state automata (FSA) that are defined via a finite number of states and transitions between them.
+In order to express this process in formal terms, we can build on the notion of finite-state automata (FSAs) we encountered in Section 2.1.1.
+FSAs are defined via a finite number of states and transitions between them.
 Those transitions are annotated with symbols, and strings are read by following the corresponding transitions.
 If such transitions exist and the last portion of the string brings the machine to the final state, the string is \emph{accepted}, i.e.\ considered well-formed with respect to the rules encoded by the FSA.
 Otherwise, the string is \emph{rejected}.
 In such a way, an FSA reads a string and evaluates its well-formedness.
 
 The transitions of the FSA have the following shape: $q_{a}\xrightarrow{\text{b}}q_{b}$.
-Such a transition indicates that after reading $b$, the FSA will move from the state $q_{a}$ to $q_{b}$.
-The core difference of a \textbf{finite-state transducer} (FST) is that it can \emph{write} an output string while reading the input string \citep{Schuetzenberger1961}.
+Such a transition indicates that if the FSA is in state $q_a$ and encounters a $b$, it switches into the state $q_b$.
+The core difference of a \textbf{finite-state transducer} (FST) is that it \emph{writes} an output string while reading the input string \citep{Schuetzenberger1961}.
 Transitions of the FST indicate what portion of the input is read, and what is added to the output string, also called the \emph{translation}.
 For example, the transition $q_{a}\xrightarrow{\text{b:x}}q_{b}$ means ``to go from $q_{a}$ to $q_{b}$, read $b$ and write $x$''.
 Consider a simple example of an FST in Figure \ref{fig:transabcd}.
@@ -1580,13 +1586,15 @@ While FSAs are functions mapping \emph{strings to boolean values}, FSTs map \emp
 A transducer in Figure \ref{fig:transabcd} accepts strings that start with $a$ and alternate $a$ and $b$.
 Every time $a$ is read, $c$ is written, and every time $b$ is read, $dd$ is written.
 It translates \emph{aba} as \emph{cddc}, and \emph{abab} as \emph{cddcdd}.
-I employ \textbf{rational} transducers in which all states can be final.
+Figure~\ref{fig:transabcd} does not indicate whether a state is final.
+This is because I will focus exclusively on \textbf{rational} transducers, in which all states are final.
 
 
 We can construct an FST mapping Buryat URs to the corresponding SFs, as depicted in Figure \ref{buryattransducera}.
 For simplicity, $N$ represents all elements that are not involved in the harmony -- consonants and the transparent vowel /i/.
 Such a transducer has $5$ states, with $q_0$ being the initial state.
-Every state has a loop $N$:$N$ on it, and it means that the irrelevant symbols for the harmony are left as is and do not move the machine to another state.
+Every state has a loop $N$:$N$ on it, which means that the irrelevant symbols for the harmony are left as is and do not move the machine to another state.
+The notation $N$:$N$ is a shorthand for many different loops of the form $x:x$, $y:y$, $z:z$, etc.\ where the symbols on the transitions are irrelevant for the process the FST encodes.
 If the initial vowel is $e$ or $u$, it moves the machine to state $q_1$, and all the following low and high vowels are rewritten as $e$ and $u$, respectively.
 If the initial vowel is $o$, state $q_2$ is activated, so all the following low vowels agree in tense and rounding, and therefore are realized as $o$.
 However, reading a high vowel $u$ moves the machine to $q_1$ thus blocking the rounding spreading.
@@ -1639,27 +1647,34 @@ In such a way, FSTs model phonological processes that change URs to the correspo
 \subsection{Subsequential mappings}
 \label{RussianWFDFST}
 
-In line with the regularity of languages satisfying the well-formedness conditions, phonological mappings are also regular \citep{Johnson1972,Koskenniemi1983,KaplanKay94}.
-A \emph{regular mapping} is one that can be represented using a FST, similarly to the way the pattern of Buryat vowel harmony is represented as a FST in figure \ref{buryattransducera}.
+As we saw in Section~ \ref{regnatofnlpt}, well-formedness conditions in phonology are overwhelmingly regular, and the same seems to hold for phonological mappings \citep{Johnson1972,Koskenniemi1983,KaplanKay94}.
+A mapping is regular iff it can be represented by a (not necessarily rational) FST\@, as we did with Buryat vowel harmony in Figure \ref{buryattransducera}.
 
 
-Similar to the results discussed in the previous sections, resent research shows that phonological mappings also do not require a full power of regular languages.
-Instead, subsequential mappings including input and output strictly local transformations were shown to be a good fit for natural language phonological and morphological processes \citep{Chandlee2014,ChandleeHeinz2018}.
-Therefore, here, as well as in Chapter 4, I focus on \emph{subsequential transducers} representing subsequential mappings.
+Similar to the results discussed in the previous sections, resent research shows that phonological mappings also do not require the full power of regular languages.
+Instead, subsequential mappings, and in particular the very limited subtypes of input strictly local and output strictly local transformations were shown to be a good fit for natural language phonological and morphological processes \citep{Chandlee2014,ChandleeHeinz2018}; they will be further discussed in Section~\ref{ISLandOSLmaps}.
+Therefore, here, as well as in Chapter 4, I focus on \textbf{subsequential transducers} as a formal model of rewrite rules in language.
 
-
-The term ``subsequential'', however, can be confusing.
-It can be interpreted as \emph{is below sequential} or \emph{subsumes sequential}, and is used in the literature in both of these meanings.
-Here following \cite{RocheSchabes1997} and  \cite{DeLaHiguera2010}, I use ``subsequential'' to mean a subclass of sequential machines.
-A \textbf{sequential} FST reads symbols of the input string one by one.
+Note that there is also a closely related class of sequential mappings, and the terminology in the literature is unfortunately not consistent.
+Traditionally, sequential mappings are a subclass of the subsequential mappings.
+More recently, it has been argued that this terminology is confusing, and the terms should be switched: the superclass should be called ``sequential'' rather than ``subsequential'', and the subclass should be called ``subsequential'' instead of ``sequential''.
+This has made it very difficult to discern which class an author is referring to with these terms.
+Following \cite{RocheSchabes1997} and \cite{DeLaHiguera2010}, I adopt the modern terminology where the subsequential mappings are a subclass of the sequential mappings.
+A \textbf{sequential FST} reads symbols of the input string one by one.
 Crucially, for every input symbol, there is at most one transition outgoing from any state of such FST that reads that symbol.
-Additionally, \textbf{subsequential} machines implement a \emph{state outputting function} that allows for the final portion of the translation to be generated at the end of the parse, depending on the state in which the FST stopped after reading the last input symbol.
+Apart from inheriting properties of the sequential class, a \textbf{subsequential} machine also implements a \emph{state outputting function} that allows for the final portion of the translation to be generated at the end of the parse, depending on the state in which the FST stopped after reading the last input symbol.
+So, for example, the transducer in Figure~\ref{buryattransducera} is sequential, but not subsequential, since the states do not have the state outputting function implemented.
+Since all sequential machines are rational, all of their states are accepting.
+
 
 In Section \ref{russianwfdpatternn}, I described the pattern of word-final devoicing in Russian, where voiced obstruents are realized as voiceless at the end of the word.
 For example, \emph{lob} `forehead' is pronounced as \emph{lo[p]}, and \emph{l$^j$od} `ice' as \emph{l$^j$o[t]}.
 For simplicity, assume that all voiced obstruents are encoded as $B$, all voiceless ones are $P$, and other segments that are not relevant for the process of word-final devoicing as $N$.
 The main rule of the target transducer is then to re-write all word-final $B$s as $P$s.
-This simplified alphabet is used in Figure \ref{ssqwfdddd} showing a subsequential FST for Russian word-final devoicing.
+Here, I am using a simplified alphabet for the sake of simplicity of the pattern representation.
+However, further, in Section~\ref{TSLresultssection}, I will show that the choice of alphabet has an effect on what constraints are learned from the data.
+In such a way, Figure \ref{ssqwfdddd} shows a subsequential FST for Russian word-final devoicing.
+This FST takes advantage of the subsequential property of having the state outputting function that appends $P$ to the end of the word if the reading of the input string was completed in the state $q_1$.
 
 
 \begin{figure}[h!] 
@@ -1692,22 +1707,33 @@ The translation of \emph{PNBNBNB} is \emph{PNBNBNP}, that corresponds to correct
 Other patterns that are shown to be subregular include metathesis, epenthesis, flapping, deletion, harmonies, and many others \citep{Chandlee2014}.
 Even some suprasegmental processes, such as stress, seem to exhibit subregular properties \citep{RogersPres}.
 For a survey of vowel harmonies and their computational complexities, see \citep{GainorLai12}.
-However, some processes, such as reduplication, are not subregular \citep{DolatianHeinz2018}.
+However, generalizations beyond some processes seem to require more complexity than subregular mechanisms can provide \citep{DolatianHeinz2018}.
 
-
-The limitations imposed by subregular models provide insights into typology and cognition.
-They allow to detect and explain typological gaps, such as the absence of first-last and sour grapes harmonic patterns%
-\footnote{The first-last vowel harmony enforces the agreement of the first and the last vowels within a word, and the sour grapes harmony spreads a harmonizing feature only if a blocker is not present \citep{Heinz-Lai-2013-VHS}.}
- \citep{Heinz-Lai-2013-VHS,Luo2017}, and give insights into human cognitive system \citep{RogersPullum2011,Lai15,Avcu2018}.
-
-
-Although subsequential mappings fit a large portion of natural language patterns, there are phonological processes that are not subsequential.
+Similarly, although subsequential mappings fit a large portion of natural language patterns, there are phonological processes that are not subsequential.
 For example, bidirectional feature spreadings cannot be captured by a subsequential machine because the latter ones can read a string either left-to-right or right-to-left: it cannot pass the value in \emph{both} directions.
 Even though this pattern intuitively seems to be pretty simple, two runs of a transducer are required to capture it \citep{Heinz-Lai-2013-VHS}.
 As another example, a transducer applying the rules of UTP to the underlying tonal representations is not subsequential either (see Sections \ref{SPldrestrictions} and 4.1.3): for a sequence of low tones to become high, it needs triggers on both sides.
-Such mappings are still regular, namely, weakly deterministic and circumambient \citep{Heinz-Lai-2013-VHS,Jardine2016,LamontEtAl2019}.
-However, I will focus on a class of subsequential mapping since it subsumes a large portion of attested phonological processes.
+Such mappings, however, are still regular, namely, they are weakly deterministic and circumambient \citep{Heinz-Lai-2013-VHS,Jardine2016,LamontEtAl2019}.
 
+
+
+Although it is not clear so far if subregularity is indeed a hard upper bound on the complexity of natural language dependencies, it provides several very valuable perspectives such as a wide empirical coverage, as well as desirable learning properties (see Section~2.3).
+Patterns from as simple as word-final devoicing (Sections~ 2.1.3 and 2.2.2) to as compex as the interaction of local and long-distance dependencies (see Samala pattern in \cite{DeSantoGraf19FG}).
+While subregular languages describe a variety of typologically attested patterns and phenomena, they also predict the impossibility of patterns that are, in fact, unattested.
+So, for example, subregular languages that seem to be the best fit for linguistic patterns cannot handle first-last harmony that enforces the agreement of the first and the last vowels within a word \citep{Heinz-Lai-2013-VHS}.
+Neither can it account for the sour grapes harmony spreads a harmonizing feature only if a blocker is not present, see Section~ 2.1.7 for other examples.
+
+
+As of the outliers, it is important to know the \emph{principal} factors that do not allow them to be captured by subregular means.
+Importantly, the linguistic analysis also plays role in the overall computational complexity of the pattern: see, for example, a Noon pattern discussed in \cite{MoradiAksenovaGraf2019} that falls in different complexity categories when analyzed under different morphological paradigms.
+Although the tight upper bound of phonological and morphological dependencies still needs to be determined, the subregular perspective can be viewed as a beam highlighting the area of the hierarchy of formal languages that certainly needs attention due to its interesting properties and predictions.
+
+
+Playing devil's advocate, one might argue that the perspective given by the subregular approach can in the future turn out to be incorrect.
+Indeed, that can be the case, however, history shows that the ideas that are not exactly correct but insightful still can be a valuable trigger of scientific progress.
+For example, in physics, there were many atomic models (Dalton's, Thomson's, Bohr's a.o.) that were insightful, but not always right.
+Although those theories are now deprecated, they were important steps towards the discovery of the Schr\"odinger's model in $1926$ that is still widely accepted nowadays.
+Even if the subregular hypothesis will turn out to be too weak for natural language dependencies, subregular models provide valuable insights into typology and cognition \citep{Heinz-Lai-2013-VHS,Luo2017}, and even human cognitive system \citep{RogersPullum2011,Lai15,Avcu2018}.
 
 
 
@@ -1724,7 +1750,7 @@ In the latter, the \emph{last} harmonizing segment contains the information abou
 For example, in Tuareg, sibilants regressively assimilate in voicing and anteriority; see Section \ref{russianwfdpatternn} for details.
 The data below repeats the SFs presented in (7-11), together with the URs, where /S/ represents the underspecified sibilant.
 
-\medskip
+\bigskip
 \begin{tabular}{llcll}
 (39) & \textbf{S}-\textschwa lm\textschwa d & $\rightarrow$ & s-\textschwa lm\textschwa d & `\textsc{caus}-learn' \\
 (40) & \textbf{S}-\textschwa q:us\textschwa & $\rightarrow$ & s-\textschwa q:us\textschwa t & `\textsc{caus}-inherit' \\
@@ -1732,7 +1758,7 @@ The data below repeats the SFs presented in (7-11), together with the URs, where
 (42) & \textbf{S}-\textschwa m:\textschwa\textesh\textschwa n & $\rightarrow$ & \textesh-\textschwa m:\textschwa\textesh\textschwa n & `\textsc{caus}-be.overwhelmed' \\
 (43) & \textbf{S}-\textschwa k:u\textyogh\textschwa t & $\rightarrow$ & \textyogh-\textschwa k:u\textyogh\textschwa t & `\textsc{caus}-saw'
 \end{tabular}
-\medskip
+\bigskip
 
 The right subsequential FST in Figure \ref{ksgjkjgsk} implements the regressive Tuareg sibilant harmony.
 For simplicity, $N$ refers to any segment that is not a sibilant.
@@ -1767,22 +1793,32 @@ For example, in (43), the third segment from the end is \textyogh~ that moves th
 \end{figure}
 
 
-
+Although indeed the majority of harmony processes are either left-subsequential or right-subsequential, bidirectional harmonies require more computational power \citep{Heinz-Lai-2013-VHS}.
+For example, in Maasai, a dominant harmony enforces the spreading of root's ATR features to both prefixes and suffixes \citep{RoseWalker2011}.
+Even though for a linguist such a pattern would not seem complicated, it requires a two-way FST to be represented.
+The first left-to-right run of such an FST does not affect the value of the prefix vowels, but rather spreads the root ATR specification onto the suffixes.
+Now, when the ATR value is known, the second right-to-left run returns to the beginning of a word, assigning that value to the prefix vowels.
+Additionally, the way a pattern is encoded highly affects its computational complexity. 
+Apart from the string representations, there are subregular perspectives on autosegmental tiers and features, and new insights can come from that direction of research as well \citep{chandlee-etal-2019-learning,chandlee-jardine-2019-autosegmental}.
 
 
 
 
 \subsection{ISL and OSL mappings}
+\label{ISLandOSLmaps}
 
 In this section, I look at two different ways transformational rules can be applied to the underlying representations.
 Thus, instead of discussing linguistic patterns, I focus on the \emph{manner of the rule application}.
-For instance, consider an SPE-style rule $a \rightarrow b / a~ \_~ a$ from \citep{Chandlee2014}.
+Although this section is not crucial for understanding the following chapters, its goal is to provide a reader with an integral perspective on the subregular modeling of transformational rules and well-formedness conditions.
+
+
+For example, consider an SPE-style rule $a \rightarrow b / a~ \_~ a$ from \citep{Chandlee2014}.
 There are two ways it can be applied.
 Given the UR \emph{aaaaa}, the simultaneous application of this rule to all positions yields the SF \emph{abbba}.
 However, if this rule was applied step-by-step, the obtained SF would be \emph{ababa}, since the change of the second $a$ to $b$ makes the context of the third $a$ incompatible with the one specified by the transformation.
 To reflect this difference, \cite{Chandlee2014} introduces smaller subclasses of subsequential mappings: \emph{input strictly local} (ISL) and \emph{output strictly local} (OSL) ones.
 The ISL functions encode simultaneous rule application of strictly local functions, while the OSL ones reflect the iterative one.
-Figure \ref{fig:ssqfunctionsmanyy} shows the relationship among left/right subsequential, ISL and OSL functions.
+Figure \ref{fig:ssqfunctionsmanyy} shows the relationship among left/right subsequential, ISL and OSL functions in a simplified way; see \cite{ChandleeEtAl2014,ChandleeEtAl2015} for proofs and details.
 
 
 \begin{figure}[h!]
@@ -1804,7 +1840,7 @@ Figure \ref{fig:ssqfunctionsmanyy} shows the relationship among left/right subse
     \draw[black,fill=gray!20] (0, -0.6) ellipse (6em and 1em);
     \node at (-1,-0.6) {OSL};
 \end{tikzpicture}
-\caption{Relationship among left subsequential, right subsequential, OSL, and ISL functions; adapted from \citep{Chandlee2014}.}
+\caption{Relationship among left subsequential, right subsequential, OSL, and ISL functions; adapted and simplified from \citep{Chandlee2014}.}
 \label{fig:ssqfunctionsmanyy}
 \end{center}
 \end{figure}
@@ -2262,7 +2298,8 @@ While in the former case, the changes are independent from each other, the latte
 FSTs encode regular mappings that are well-known to be a good fit for natural language phonology and morphology \citep{Johnson1972,KaplanKay94,BeesleyKartunnen03}.
 However, a particular class of functions, namely, \emph{subsequential}, includes the major part of natural language patterns.
 Transducers implementing subsequential mappings read the symbols of the underlying representations one by one and output the corresponding surface forms.
-This allows one to model local and long-distance processes, such as word-final devoicing and vowel harmony.
+This allows one to model a wide variety of local and long-distance dependencies such as word-final devoicing and vowel harmony.
+For the discussion of predictions and outcomes of subregular and subsequential modeling, see Section~ 2.2.2.
 
 It should be noted that some attested phonological processes are not subsequential.
 Among them, there are circumambient pattern of unbounded tonal plateauing and reduplication requiring the power of two-way FSTs \citep{Jardine2016,DolatianHeinz2018}.
@@ -2294,9 +2331,11 @@ The field of \emph{inductive inference} aims at a problem of inferring the under
 Finally, \emph{pattern recognition} describes the best model and its properties that would explain the data; it \emph{analyzes} the pattern.
 
 If the task is to model a language, then the goal is to find a grammar that describes that language.
-If the grammar is not known a priori, it might be possible to \emph{learn} its rules by observing and exploring the language.
-\emph{Grammatical inference algorithms} require a finite sample of usually positive data drawn from the target language as input, and return a grammar hypothesis as output.
-That grammar solves a \emph{membership problem} for that language, or, in other words, it correctly predicts for any given string if that string belongs to the target language, see Figure \ref{fig:LGrel}.
+If the grammar is not known \emph{a priori}, it might be possible to \emph{learn} its rules by observing and exploring the language.
+\textbf{Grammatical inference algorithms} require a finite sample of data representing the target language as input, and return a grammar hypothesis as output.
+Often, such algorithms need only \textbf{positive data}, or, in other words, a collection of well-formed structures of the target language.
+However, some algorithms require \textbf{negative data} as well --- in this case, a list of ill-formed words needs to be available.
+That grammar solves a \textbf{membership problem} for that language, or, in other words, it correctly predicts for any given string if that string belongs to the target language, see Figure \ref{fig:LGrel}.
 If instead a mapping needs to be learned, grammatical inference algorithms require a sufficient sample of the input-output pairs as input and construct a transducer that generalizes that mapping.
 
 \begin{figure}[t]
@@ -2321,8 +2360,9 @@ If instead a mapping needs to be learned, grammatical inference algorithms requi
 
 
 The learning algorithms for SL, SP, TSL and MTSL languages, and also the algorithm inferring subsequential mappings, will be discussed in details in Chapters 3 and 4.
-These algorithms share several common properties, namely, they all require only positive data to find the grammar, they are fully interpretable, and work in polynomial time and data.
-Indeed, \emph{learning only from the positive data} is the desired characteristic, since human learners do not have access to what is not possible in their languages \citep{Chomsky1986}.
+These algorithms share several common properties: they all require only positive data to find the grammar, they are fully interpretable, and work in polynomial time and data.
+In what follows, I explain these properties.
+Indeed, \emph{learning only from the positive data} is the desired characteristic, since human learners do not have access to what is not possible in their languages: a finite sample of well-formed examples is sufficient for extracting the pattern. \citep{Chomsky1986}.
 Only some of the subregular languages have this property: the full class of regular languages cannot be learned from positive data.
 \emph{Interpretability} of an algorithm means that both the learning process and the outcome are transparent: it is possible to trace how the learner came to a certain conclusion, and explain the obtained results.
 These learners extract grammars in \emph{polynomial time}, so they can be computed in practice.
@@ -2354,6 +2394,9 @@ For instance, \cite{GildeaJurafsky1996} show that a corpus of English pronunciat
 Indeed, the results of my Chapters 3 and 4 confirm that local restrictions and gaps in the natural language data obscure the extraction of some dependencies.
 This is why I mostly focused on learning \emph{sub-phenomena} instead of the complex interactions of local and long-distance dependencies found in natural language data.
 Alternatively, capturing different aspects of the data can be done by combining forces of different learners \citep{Heinz10ldp,HeinzIdsardi13}.
+For example, a language can exhibit tone plateauing (SP) together with a long-distance harmony with blocking (TSL).
+To learn this patter, the SP and TSL learning algorithms can be run in parallel, and the intersection of the obtained languages yields the target language.
+However, future research is needed to understand if transformations can be combined in a way that would preserve properties such as subsequentiality.
 
 
 There are other directions of research that could improve the performance of subregular learners.
@@ -2363,3 +2406,11 @@ Some prior knowledge about the shape of the data can be encoded into the learner
 Also, adding probabilities to the learning algorithms allows abandoning the ``black and white'' structural approach incapable of modeling such probabilistic phenomena as harmony fading or the occurrence of disharmonic words.
 \cite{HeinzRogers2010SPdist,Shibata-Heinz-2019-MLEFRDSL} explore the probabilistic subregular models, and \cite{Heinz-Koirala-2010-MLEFD,VuZehfrooshEtal2018-SRLUSM} add together features and probabilities.
 
+\bigskip\bigskip
+
+This chapter is setting the scene for the automatic modeling of well-formedness conditions and transformational rules using subregular methods.
+I introduced the main subclasses of subregular languages and mappings and showed how different typologically diverse linguistic patterns can be captured using subregular means.
+It is also worth noticing that subregular classes that seem to be the best fit for linguistic dependencies are also efficiently learnable from positive data.
+Moreover, the outcomes of those learning algorithms, as well as the steps of the learning process, are fully interpretable and transparent.
+While it requires additional research to understand if subregular languages and mappings provide a tight upper bound on the computational complexity of natural language dependencies, the subregular approach provides valuable perspectives on modeling linguistic phenomena, as discussed in Sections~ 2.1.2 and 2.2.2.
+In Chapters 3 and 4, I explore the automatic modeling of linguistic phenomena using subregular learners.
